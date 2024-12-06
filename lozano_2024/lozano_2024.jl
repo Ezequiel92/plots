@@ -65,6 +65,9 @@ function lozano2024(
 
     GalaxyInspector.setLogging!(logging; stream=log_file)
 
+    # Select the last snapshot for Au6_MOL
+    Au6_MOL_slice = GalaxyInspector.countSnapshot(Au6_MOL_path)
+
     ################################################################################################
     # Main simulation (Au6_MOL)
     ################################################################################################
@@ -75,7 +78,7 @@ function lozano2024(
 
     scatterDensityMap(
         [Au6_MOL_path],
-        128,
+        Au6_MOL_slice,
         :stellar_xy_distance,
         :stellar_circularity,
         :stellar_mass,
@@ -98,7 +101,7 @@ function lozano2024(
 
     densityProfile(
         [Au6_MOL_path],
-        128,
+        Au6_MOL_slice,
         :stellar_mass;
         yscale=log10,
         radius=r1,
@@ -142,7 +145,7 @@ function lozano2024(
         output_path=joinpath(figures_path, Au6_MOL_label),
         base_filename="sfr_vs_physical_time_radio_separated",
         output_format=".pdf",
-        slice=128,
+        slice=Au6_MOL_slice,
         filter_function,
         da_functions=[GalaxyInspector.daStellarHistory],
         da_kwargs=[
@@ -217,7 +220,7 @@ function lozano2024(
         output_path=joinpath(figures_path, Au6_MOL_label),
         base_filename="circularity_histogram_radio_separated",
         output_format=".pdf",
-        slice=128,
+        slice=Au6_MOL_slice,
         filter_function,
         da_functions=[GalaxyInspector.daLineHistogram],
         da_args=[(:stellar_circularity, grid, :stars)],
@@ -268,7 +271,7 @@ function lozano2024(
 
     densityMapVelField(
         [Au6_MOL_path],
-        128;
+        Au6_MOL_slice;
         quantities=[:stellar_mass],
         types=[:particles],
         output_path=temp_folder,
@@ -297,7 +300,7 @@ function lozano2024(
 
     densityMapVelField(
         [Au6_MOL_path],
-        128;
+        Au6_MOL_slice;
         quantities=[:stellar_mass],
         types=[:particles],
         output_path=temp_folder,
@@ -384,7 +387,7 @@ function lozano2024(
                 [heatmap!];
                 output_path=temp_folder,
                 base_filename="$(quantity)_$(projection_plane)",
-                slice=128,
+                slice=Au6_MOL_slice,
                 filter_function,
                 da_functions=[GalaxyInspector.daDensity2DProjection],
                 da_args=[(grid, quantity, :cells)],
@@ -493,7 +496,7 @@ function lozano2024(
         [lines!];
         output_path=temp_folder,
         base_filename="gas_density_profiles",
-        slice=128,
+        slice=Au6_MOL_slice,
         filter_function,
         da_functions=[GalaxyInspector.daProfile],
         da_args=[(quantity, grid) for quantity in quantities],
@@ -522,7 +525,7 @@ function lozano2024(
         [lines!];
         output_path=temp_folder,
         base_filename="gas_fractions_profiles",
-        slice=128,
+        slice=Au6_MOL_slice,
         filter_function,
         da_functions=[GalaxyInspector.daProfile],
         da_args=[(quantity, grid) for quantity in quantities],
@@ -1917,7 +1920,7 @@ function lozano2024(
 
     simulationReport(simulation_paths; output_path=report_path)
 
-    snapshotReport(simulation_paths, 128; output_path=report_path, filter_mode=:subhalo)
+    snapshotReport(simulation_paths, [128]; output_path=report_path, filter_mode=:subhalo)
 
     ##############################################
     # INFO FILE - Insitu/Exsitu stellar fractions
@@ -1928,7 +1931,7 @@ function lozano2024(
         Dict(:stars => ["ID  "]),
     )
 
-    data_dict = GalaxyInspector.makeDataDict(Au6_MOL_path, 128, request)
+    data_dict = GalaxyInspector.makeDataDict(Au6_MOL_path, Au6_MOL_slice, request)
 
     GalaxyInspector.filterData!(data_dict; filter_function)
 
@@ -1966,7 +1969,7 @@ function lozano2024(
         Dict(:stars => ["GAGE", "MASS"]),
     )
 
-    data_dict = makeDataDict(Au6_MOL_path, 128, request)
+    data_dict = makeDataDict(Au6_MOL_path, Au6_MOL_slice, request)
 
     ts, sfrs = GalaxyInspector.daStellarHistory(data_dict; filter_function)
 
@@ -1995,7 +1998,7 @@ function lozano2024(
 
     radial_limits = [40.0, 60.0] .* u"kpc"
 
-    data_dict = makeDataDict(Au6_MOL_path, 128, request)
+    data_dict = makeDataDict(Au6_MOL_path, Au6_MOL_slice, request)
 
     GalaxyInspector.translateData!(data_dict, translation)
 
@@ -2114,7 +2117,7 @@ function lozano2024(
         ),
     )
 
-    data_dict = makeDataDict(Au6_MOL_path, 128, request)
+    data_dict = makeDataDict(Au6_MOL_path, Au6_MOL_slice, request)
 
     GalaxyInspector.translateData!(data_dict, translation)
 

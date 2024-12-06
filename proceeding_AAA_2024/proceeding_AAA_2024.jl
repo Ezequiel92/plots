@@ -210,7 +210,6 @@ function proceedingAAA2024(
     )
 
     with_theme(current_theme) do
-        # (1550, 1000)
         f = Figure(size=(1200, 740), figure_padding=(5, 5, 0, 13))
 
         ax_1 = CairoMakie.Axis(
@@ -263,8 +262,6 @@ function proceedingAAA2024(
                 color=:white,
                 space=:relative,
                 fontsize=40,
-                # strokewidth=1,
-                # strokecolor=:gray60,
             )
 
         end
@@ -288,8 +285,6 @@ function proceedingAAA2024(
                 color=:white,
                 space=:relative,
                 fontsize=40,
-                # strokewidth=1,
-                # strokecolor=:gray60,
             )
 
             Colorbar(
@@ -366,240 +361,6 @@ function proceedingAAA2024(
 
     temp_folder = joinpath(figures_path, "_gas_profiles")
 
-    quantities = [:gas_mass, :stellar_mass]
-    plot_params = GalaxyInspector.plotParams(:generic_area_density)
-
-    filter_function, translation, rotation, request = GalaxyInspector.selectFilter(
-        :subhalo,
-        plot_params.request,
-    )
-
-    grid = GalaxyInspector.CircularGrid(r2, 50)
-
-    for path in simulation_paths
-
-        plotSnapshot(
-            fill(path, length(quantities)),
-            request,
-            [lines!];
-            output_path=joinpath(temp_folder, basename(path)),
-            base_filename="gas_density_profiles",
-            slice,
-            filter_function,
-            da_functions=[GalaxyInspector.daProfile],
-            da_args=[(quantity, grid) for quantity in quantities],
-            da_kwargs=[(; flat=true, total=true, cumulative=false, density=true)],
-            transform_box=true,
-            translation,
-            rotation,
-            x_unit=u"kpc",
-            y_unit=plot_params.unit,
-            save_figures=false,
-            backup_results=true,
-        )
-
-    end
-
-    quantities = [:ionized_mass, :neutral_mass, :molecular_mass]
-    plot_params = GalaxyInspector.plotParams(:generic_fraction)
-    filter_function, translation, rotation, request = GalaxyInspector.selectFilter(
-        :subhalo,
-        plot_params.request,
-    )
-
-    grid = GalaxyInspector.CircularGrid(r2, 50)
-
-    plotSnapshot(
-        fill(Au6_MOL_path, length(quantities)),
-        request,
-        [lines!];
-        output_path=joinpath(temp_folder, basename(Au6_MOL_path)),
-        base_filename="gas_fractions_profiles",
-        slice,
-        filter_function,
-        da_functions=[GalaxyInspector.daProfile],
-        da_args=[(quantity, grid) for quantity in quantities],
-        da_kwargs=[(; flat=true, fractions=true)],
-        transform_box=true,
-        translation,
-        rotation,
-        x_unit=u"kpc",
-        y_unit=plot_params.unit,
-        save_figures=false,
-        backup_results=true,
-    )
-
-    quantities = [:ionized_mass, :neutral_mass]
-
-    plotSnapshot(
-        fill(Au6_STD_path, length(quantities)),
-        request,
-        [lines!];
-        output_path=joinpath(temp_folder, basename(Au6_STD_path)),
-        base_filename="gas_fractions_profiles",
-        slice,
-        filter_function,
-        da_functions=[GalaxyInspector.daProfile],
-        da_args=[(quantity, grid) for quantity in quantities],
-        da_kwargs=[(; flat=true, fractions=true)],
-        transform_box=true,
-        translation,
-        rotation,
-        x_unit=u"kpc",
-        y_unit=plot_params.unit,
-        save_figures=false,
-        backup_results=true,
-    )
-
-    density_paths = joinpath.(temp_folder, basename.(simulation_paths), "gas_density_profiles.jld2")
-    fraction_paths = joinpath.(
-        temp_folder,
-        basename.(simulation_paths),
-        "gas_fractions_profiles.jld2",
-    )
-
-    with_theme(merge(theme_latexfonts(), GalaxyInspector.DEFAULT_THEME)) do
-
-        f = Figure(size=(880, 1600),)
-
-        ax_1 = CairoMakie.Axis(
-            f[1, 1];
-            xlabel=L"r \, [\mathrm{kpc}]",
-            ylabel=L"\Sigma \, [\mathrm{M_\odot \, pc^{-2}}]",
-            yscale=log10,
-            xminorticksvisible=false,
-            xticksvisible=false,
-            xlabelvisible=false,
-            xticklabelsvisible=false,
-        )
-
-        jldopen(density_paths[1], "r") do jld2_file
-
-            first_address = first(keys(jld2_file))
-
-            x_h, y_h = jld2_file[first_address]["simulation_001"]
-            x_s, y_s = jld2_file[first_address]["simulation_002"]
-
-            lines!(ax_1, x_h, y_h; linestyle=:solid, color=:black, label="Au6_MOL - Gas density")
-            lines!(
-                ax_1,
-                x_s,
-                y_s;
-                linestyle=:solid,
-                color=Makie.wong_colors()[2],
-                label="Au6_MOL - Stellar density",
-            )
-        end
-
-        jldopen(density_paths[2], "r") do jld2_file
-
-            first_address = first(keys(jld2_file))
-
-            x_h, y_h = jld2_file[first_address]["simulation_001"]
-            x_s, y_s = jld2_file[first_address]["simulation_002"]
-
-            lines!(ax_1, x_h, y_h; linestyle=:dash, color=:black, label="Au6_STD - Gas density")
-            lines!(
-                ax_1,
-                x_s,
-                y_s;
-                linestyle=:dash,
-                color=Makie.wong_colors()[2],
-                label="Au6_STD - Stellar density",
-            )
-
-        end
-
-        axislegend(ax_1, position=:rt, framevisible=false, fontsize=16, nbanks=1, rowgap=-4)
-
-        ax_2 = CairoMakie.Axis(
-            f[2, 1];
-            xlabel=L"r \, [\mathrm{kpc}]",
-            ylabel=L"\log_{10} \, f",
-            aspect=nothing,
-            xticks=0:10:100,
-            limits=(-2, nothing, nothing, nothing),
-        )
-
-        jldopen(fraction_paths[1], "r") do jld2_file
-
-            first_address = first(keys(jld2_file))
-
-            x_i, y_i = jld2_file[first_address]["simulation_001"]
-            x_n, y_n = jld2_file[first_address]["simulation_002"]
-            # x_m, y_m = jld2_file[first_address]["simulation_003"]
-
-            lines!(
-                ax_2,
-                x_i,
-                log10.(y_i);
-                linestyle=:solid,
-                color=Makie.wong_colors()[1],
-                label="Au6_MOL - Ionized fraction",
-            )
-            lines!(
-                ax_2,
-                x_n,
-                log10.(y_n);
-                linestyle=:solid,
-                color=Makie.wong_colors()[4],
-                label="Au6_MOL - Neutral fraction",
-            )
-            # lines!(
-            #     ax_2,
-            #     x_m,
-            #     log10.(y_m);
-            #     linestyle=:solid,
-            #     color=Makie.wong_colors()[3],
-            #     label="Au6_MOL - Molecular fraction",
-            # )
-
-        end
-
-        jldopen(fraction_paths[2], "r") do jld2_file
-
-            first_address = first(keys(jld2_file))
-
-            x_i, y_i = jld2_file[first_address]["simulation_001"]
-            x_n, y_n = jld2_file[first_address]["simulation_002"]
-
-            lines!(
-                ax_2,
-                x_i,
-                log10.(y_i);
-                linestyle=:dash,
-                color=Makie.wong_colors()[1],
-                label="Au6_STD - Ionized fraction",
-            )
-            lines!(
-                ax_2,
-                x_n,
-                log10.(y_n);
-                linestyle=:dash,
-                color=Makie.wong_colors()[4],
-                label="Au6_STD - Neutral fraction",
-            )
-
-        end
-
-        axislegend(ax_2, position=:lb, framevisible=false, fontsize=16, nbanks=1, rowgap=-4)
-
-        linkxaxes!(ax_1, ax_2)
-        rowsize!(f.layout, 1, Relative(1 / 2))
-        colsize!(f.layout, 1, Makie.Fixed(pixelarea(ax_1.scene)[].widths[2]))
-
-        Makie.save(joinpath(figures_path, "gas_density_and_fractions_profiles.pdf"), f)
-
-    end
-
-    rm(temp_folder; recursive=true)
-
-    #############################################################################################
-    # Profiles of the gas surface density and of the fractions, for the different gas components
-    #############################################################################################
-
-    temp_folder = joinpath(figures_path, "_gas_profiles")
-
     grid = GalaxyInspector.CircularGrid(r1, 15)
 
     quantities = [:gas_mass, :stellar_mass]
@@ -634,7 +395,7 @@ function proceedingAAA2024(
 
     end
 
-    quantities = [:ionized_mass, :neutral_mass, :molecular_mass]
+    quantities = [:ionized_mass, :neutral_mass]
     plot_params = GalaxyInspector.plotParams(:generic_fraction)
 
     filter_function, translation, rotation, request = GalaxyInspector.selectFilter(
@@ -756,7 +517,6 @@ function proceedingAAA2024(
 
             x_i, y_i = jld2_file[first_address]["simulation_001"]
             x_n, y_n = jld2_file[first_address]["simulation_002"]
-            # x_m, y_m = jld2_file[first_address]["simulation_003"]
 
             lines!(
                 ax_2,
@@ -774,14 +534,6 @@ function proceedingAAA2024(
                 color=Makie.wong_colors()[4],
                 label="Au6_MOL - Neutral fraction",
             )
-            # lines!(
-            #     ax_2,
-            #     x_m,
-            #     y_m;
-            #     linestyle=:solid,
-            #     color=Makie.wong_colors()[3],
-            #     label="Au6_MOL - Molecular fraction",
-            # )
 
         end
 
@@ -814,7 +566,7 @@ function proceedingAAA2024(
         axislegend(ax_2, position=:rt, framevisible=false, fontsize=16, nbanks=1, rowgap=-5)
 
         linkxaxes!(ax_1, ax_2)
-        rowsize!(f.layout, 1, Relative(1 / 2))
+        rowsize!(f.layout, 1, Relative(1/2))
         colsize!(f.layout, 1, Makie.Fixed(pixelarea(ax_1.scene)[].widths[2]))
 
         Makie.save(joinpath(figures_path, "gas_density_and_fractions_profiles.pdf"), f)
@@ -835,7 +587,7 @@ function (@main)(ARGS)
 
     LOGGING = true
     BASE_OUT_PATH = "./"
-    BASE_SRC_PATH = "F:/simulations/2024-10-18/cosmological"
+    BASE_SRC_PATH = "F:/simulations/2024-10-18/cosmological/"
     SIMULATIONS = ["test_cosmo_27", "test_cosmo_volker_06"]
     LABELS = ["Au6_MOL", "Au6_STD"]
     SLICE = 1

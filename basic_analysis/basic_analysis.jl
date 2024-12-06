@@ -57,7 +57,7 @@ function basic_analysis(
 
     snapshotReport(
         [simulation_path],
-        n_snapshots;
+        [n_snapshots];
         output_path=report_path,
         filter_mode=:subhalo,
         halo_idx=1,
