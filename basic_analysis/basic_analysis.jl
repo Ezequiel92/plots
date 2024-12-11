@@ -38,6 +38,7 @@ function basic_analysis(
     base_out_path::String,
     r1::Unitful.Length,
     r2::Unitful.Length,
+    norm::Int,
     logging::Bool,
 )::Nothing
 
@@ -47,6 +48,7 @@ function basic_analysis(
 
     GalaxyInspector.setLogging!(logging; stream=log_file)
 
+    # Select the last snapshot
     n_snapshots = GalaxyInspector.countSnapshot(simulation_path)
 
     ###############
@@ -64,9 +66,9 @@ function basic_analysis(
         subhalo_rel_idx=1,
     )
 
-    ##################################
-    # Stellar surface density profile
-    ##################################
+    #########################################################
+    # Stellar surface density profile (of the last snapshot)
+    #########################################################
 
     densityProfile(
         [simulation_path],
@@ -114,9 +116,9 @@ function basic_analysis(
         theme=Theme(palette=(color=[Makie.wong_colors()[2]],),),
     )
 
-    ##########################################
-    # Circularity histogram (radio separated)
-    ##########################################
+    ################################################################
+    # Circularity histogram (of the last snapshot, radio separated)
+    ################################################################
 
     plot_params = GalaxyInspector.plotParams(:stellar_circularity)
     filter_function, translation, rotation, request = GalaxyInspector.selectFilter(
@@ -146,9 +148,9 @@ function basic_analysis(
         da_functions=[GalaxyInspector.daLineHistogram],
         da_args=[(:stellar_circularity, grid, :stars)],
         da_kwargs=[
-            (; filter_function=da_ff[1], norm=14232),
-            (; filter_function=da_ff[2], norm=14232),
-            (; filter_function=da_ff[3], norm=14232),
+            (; filter_function=da_ff[1], norm),
+            (; filter_function=da_ff[2], norm),
+            (; filter_function=da_ff[3], norm),
         ],
         transform_box=true,
         translation,
@@ -180,47 +182,96 @@ function basic_analysis(
         ],
     )
 
-    ##########################################
-    # Efficiency per free-fall time histogram
-    ##########################################
+    ##################################################################
+    # Efficiency per free-fall time histograms (of the last snapshot)
+    ##################################################################
 
-    lineHistogram(
-        [simulation_path],
-        n_snapshots,
-        :stellar_eff,
-        :stars,
-        (1.0e-4, 1.0);
-        n_bins=100,
-        log=true,
-        output_path=figures_path,
-        filter_mode=:subhalo,
-        extra_filter=dd -> GalaxyInspector.intersectFilters(
-            GalaxyInspector.filterWithinSphere(dd, (0.0u"kpc", r1), :zero),
-            GalaxyInspector.filterOldStars(dd),
+    plot_params = GalaxyInspector.plotParams(:stellar_eff)
+
+    filter_function, translation, rotation, request = GalaxyInspector.selectFilter(
+        :subhalo,
+        GalaxyInspector.mergeRequests(
+            plot_params.request,
+            GalaxyInspector.plotParams(:stellar_eff).request,
+            GalaxyInspector.plotParams(:gas_eff).request,
+            Dict(:stars => ["GAGE"]),
         ),
-        ff_request=Dict(:gas => ["FRAC"]),
-        sim_labels=nothing,
-        theme=Theme(palette=(color=[Makie.wong_colors()[2]],),),
     )
 
-    lineHistogram(
-        [simulation_path],
-        n_snapshots,
-        :gas_eff,
-        :gas,
-        (1.0e-4, 1.0);
-        n_bins=100,
-        log=true,
+    grid = GalaxyInspector.LinearGrid(1.0e-4, 1.0, 100; log=true)
+
+    plotSnapshot(
+        [simulation_path, simulation_path],
+        request,
+        [lines!];
         output_path=figures_path,
-        filter_mode=:subhalo,
-        extra_filter=dd -> GalaxyInspector.filterWithinSphere(dd, (0.0u"kpc", r1), :zero),
-        ff_request=Dict(:gas => ["FRAC"]),
-        sim_labels=nothing,
-        theme=Theme(palette=(color=[:black],),),
+        base_filename="stellar_eff_line_histogram_all_stars",
+        slice=n_snapshots,
+        filter_function,
+        da_functions=[GalaxyInspector.daLineHistogram, GalaxyInspector.daLineHistogram],
+        da_args=[(:stellar_eff, grid, :stars), (:gas_eff, grid, :gas)],
+        da_kwargs=[
+            (;
+                filter_function=dd -> GalaxyInspector.intersectFilters(
+                    GalaxyInspector.filterWithinSphere(dd, (0.0u"kpc", 40.0u"kpc"), :zero),
+                ),
+                norm=0,
+            )
+        ],
+        transform_box=true,
+        translation,
+        rotation,
+        x_unit=plot_params.unit,
+        x_exp_factor=plot_params.exp_factor,
+        xaxis_label=plot_params.axis_label,
+        xaxis_var_name=plot_params.var_name,
+        yaxis_var_name=L"\mathrm{Normalized \,\, counts}",
+        xaxis_scale_func=log10,
+        theme=Theme(
+            palette=(linestyle=[:solid], color=[Makie.wong_colors()[2], :black]),
+            Legend=(nbanks=1, halign=:left, valign=:top, padding=(40, 0, 0, 0)),
+        ),
+        sim_labels=["All stellar", "Gas"],
+    )
+
+    plotSnapshot(
+        [simulation_path, simulation_path],
+        request,
+        [lines!];
+        pf_kwargs=[(;)],
+        output_path=figures_path,
+        base_filename="stellar_eff_line_histogram_young_stars",
+        slice=n_snapshots,
+        filter_function,
+        da_functions=[GalaxyInspector.daLineHistogram, GalaxyInspector.daLineHistogram],
+        da_args=[(:stellar_eff, grid, :stars), (:gas_eff, grid, :gas)],
+        da_kwargs=[
+            (;
+                filter_function=dd -> GalaxyInspector.intersectFilters(
+                    GalaxyInspector.filterWithinSphere(dd, (0.0u"kpc", 40.0u"kpc"), :zero),
+                    GalaxyInspector.filterOldStars(dd),
+                ),
+                norm=0,
+            )
+        ],
+        transform_box=true,
+        translation,
+        rotation,
+        x_unit=plot_params.unit,
+        x_exp_factor=plot_params.exp_factor,
+        xaxis_label=plot_params.axis_label,
+        xaxis_var_name=plot_params.var_name,
+        yaxis_var_name=L"\mathrm{Normalized \,\, counts}",
+        xaxis_scale_func=log10,
+        theme=Theme(
+            palette=(linestyle=[:solid], color=[Makie.wong_colors()[2], :black]),
+            Legend=(nbanks=1, halign=:left, valign=:top, padding=(40, 0, 0, 0)),
+        ),
+        sim_labels=["Young stellar", "Gas"],
     )
 
     ################################################################################
-    # Gas components density map (face-on/edge-on projections at the last snapshot)
+    # Gas components density map (face-on/edge-on projections of the last snapshot)
     ################################################################################
 
     temp_folder = joinpath(figures_path, "density_maps")
@@ -364,12 +415,22 @@ end
 
 function (@main)(ARGS)
 
+    # If logging into a file will be enable
     LOGGING = true
+
+    # Output folder
     BASE_OUT_PATH = "./"
+
+    # Simulation folder
     SIMULATION_PATH = "F:/simulations/Au6_MOL_test/Au6_MOL_test18"
+
+    # Characteristic radii
     R1 = 40.0u"kpc"
     R2 = 2.0u"kpc"
 
-    basic_analysis(SIMULATION_PATH, BASE_OUT_PATH, R1, R2, LOGGING)
+    # Number of count to normalice the circularity histogram
+    NORM = 36251
+
+    basic_analysis(SIMULATION_PATH, BASE_OUT_PATH, R1, R2, NORM, LOGGING)
 
 end

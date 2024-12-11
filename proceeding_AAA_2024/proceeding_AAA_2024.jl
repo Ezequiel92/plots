@@ -37,7 +37,6 @@ using GalaxyInspector
 function proceedingAAA2024(
     simulation_paths::Vector{String},
     labels::Vector{String},
-    slice::Int,
     base_out_path::String,
     r1::Unitful.Length,
     r2::Unitful.Length,
@@ -52,6 +51,12 @@ function proceedingAAA2024(
     # Set the labels
     Au6_MOL_label = labels[1]
     Au6_STD_label = labels[2]
+
+    # Select the last snapshot of each simulation
+    mol_z0_snap = GalaxyInspector.findClosestSnapshot(Au6_MOL_path, 14.0u"Gyr")
+    std_z0_snap = GalaxyInspector.findClosestSnapshot(Au6_STD_path, 14.0u"Gyr")
+
+    z0_snaps = [mol_z0_snap, std_z0_snap]
 
     # Construct the necessary folders and files
     figures_path = mkpath(joinpath(base_out_path, "figures"))
@@ -79,7 +84,7 @@ function proceedingAAA2024(
         output_path=joinpath(figures_path),
         base_filename="sfr_vs_physical_time",
         output_format=".pdf",
-        slice,
+        slice=min(z0_snaps...),
         filter_function,
         da_functions=[GalaxyInspector.daStellarHistory],
         da_kwargs=[
@@ -128,9 +133,9 @@ function proceedingAAA2024(
         sim_labels=[Au6_MOL_label, Au6_STD_label],
     )
 
-    ##############################################################################################
-    # Stellar density maps for comparison (face-on and edge-on projections, with velocity fields)
-    ##############################################################################################
+    #############################################################################################
+    # Stellar density maps (face-on and edge-on projections with velocity fields, at redshift 0)
+    #############################################################################################
 
     temp_folder = joinpath(figures_path, "_stellar_maps")
 
@@ -145,7 +150,7 @@ function proceedingAAA2024(
         GalaxyInspector.plotParams(:stellar_mass).request,
     )
 
-    for simulation in simulation_paths
+    for (simulation, slice) in zip(simulation_paths, z0_snaps)
 
         plotSnapshot(
             [simulation, simulation],
@@ -371,7 +376,7 @@ function proceedingAAA2024(
         plot_params.request,
     )
 
-    for path in simulation_paths
+    for (path, slice) in zip(simulation_paths, z0_snaps)
 
         plotSnapshot(
             fill(path, length(quantities)),
@@ -409,7 +414,7 @@ function proceedingAAA2024(
         [lines!];
         output_path=joinpath(temp_folder, basename(Au6_MOL_path)),
         base_filename="fractions_profiles",
-        slice,
+        slice=mol_z0_snap,
         filter_function,
         da_functions=[GalaxyInspector.daProfile],
         da_args=[(quantity, grid) for quantity in quantities],
@@ -431,7 +436,7 @@ function proceedingAAA2024(
         [lines!];
         output_path=joinpath(temp_folder, basename(Au6_STD_path)),
         base_filename="fractions_profiles",
-        slice,
+        slice=std_z0_snap,
         filter_function,
         da_functions=[GalaxyInspector.daProfile],
         da_args=[(quantity, grid) for quantity in quantities],
@@ -590,13 +595,12 @@ function (@main)(ARGS)
     BASE_SRC_PATH = "F:/simulations/2024-10-18/cosmological/"
     SIMULATIONS = ["test_cosmo_27", "test_cosmo_volker_06"]
     LABELS = ["Au6_MOL", "Au6_STD"]
-    SLICE = 1
     SIMULATION_PATHS = joinpath.(BASE_SRC_PATH, SIMULATIONS)
 
     R1 = 40.0u"kpc"
     R2 = 100.0u"kpc"
     R3 = 2.0u"kpc"
 
-    proceedingAAA2024(SIMULATION_PATHS, LABELS, SLICE, BASE_OUT_PATH, R1, R2, R3, LOGGING)
+    proceedingAAA2024(SIMULATION_PATHS, LABELS, BASE_OUT_PATH, R1, R2, R3, LOGGING)
 
 end
