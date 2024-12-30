@@ -41,38 +41,43 @@ function lozano2024(
     r1::Unitful.Length,
     r2::Unitful.Length,
     r3::Unitful.Length,
+    norm::Int,
     logging::Bool,
 )::Nothing
 
-    # Set the paths
+    # Create the necessary folders
+    figures_path = mkpath(joinpath(base_out_path, "figures"))
+    report_path = mkpath(joinpath(base_out_path, "reports"))
+
+    # Create the necessary files
+    info_file = open(joinpath(report_path, "info.txt"), "w")
+    table_file = open(joinpath(report_path, "table.txt"), "w")
+
+    # If requested, activate logging
+    if logging
+        log_file = open(joinpath(report_path, "logs.txt"), "w+")
+        GalaxyInspector.setLogging!(logging; stream=log_file)
+    end
+
+    # Set the simulation paths
     Au6_MOL_path = simulation_paths[1]
     Au6_BLT_path = simulation_paths[2]
     Au6_STD_path = simulation_paths[3]
     Au6_MOL_LR_path = simulation_paths[4]
 
-    # Set the labels
+    # Set the simulation labels
     Au6_MOL_label = labels[1]
     Au6_BLT_label = labels[2]
     Au6_STD_label = labels[3]
     Au6_MOL_LR_label = labels[4]
 
-    # Select the last snapshot of each simulation
-    mol_z0_snap = GalaxyInspector.findClosestSnapshot(Au6_MOL_path, 14.0u"Gyr")
-    blt_z0_snap = GalaxyInspector.findClosestSnapshot(Au6_BLT_path, 14.0u"Gyr")
-    std_z0_snap = GalaxyInspector.findClosestSnapshot(Au6_STD_path, 14.0u"Gyr")
-    mol_lf_z0_snap = GalaxyInspector.findClosestSnapshot(Au6_MOL_LR_path, 14.0u"Gyr")
+    # Select the redshift 0 snapshot of each simulation
+    Au6_MOL_z0_snap = GalaxyInspector.findClosestSnapshot(Au6_MOL_path, 14.0u"Gyr")
+    Au6_BLT_z0_snap = GalaxyInspector.findClosestSnapshot(Au6_BLT_path, 14.0u"Gyr")
+    Au6_STD_z0_snap = GalaxyInspector.findClosestSnapshot(Au6_STD_path, 14.0u"Gyr")
+    Au6_MOL_LR_z0_snap = GalaxyInspector.findClosestSnapshot(Au6_MOL_LR_path, 14.0u"Gyr")
 
-    z0_snaps = [mol_z0_snap, blt_z0_snap, std_z0_snap, mol_lf_z0_snap]
-
-    # Create the necessary folders
-    figures_path = mkpath(joinpath(base_out_path, "figures"))
-    report_path = mkpath(joinpath(base_out_path, "reports"))
-    # Create the necessary files
-    info_file = open(joinpath(report_path, "info.txt"), "w")
-    table_file = open(joinpath(report_path, "table.txt"), "w")
-    log_file = open(joinpath(report_path, "logs.txt"), "w+")
-
-    GalaxyInspector.setLogging!(logging; stream=log_file)
+    z0_snaps = [Au6_MOL_z0_snap, Au6_BLT_z0_snap, Au6_STD_z0_snap, Au6_MOL_LR_z0_snap]
 
     ################################################################################################
     # Main simulation (Au6_MOL)
@@ -84,7 +89,7 @@ function lozano2024(
 
     scatterDensityMap(
         [Au6_MOL_path],
-        mol_z0_snap,
+        Au6_MOL_z0_snap,
         :stellar_xy_distance,
         :stellar_circularity,
         :stellar_mass,
@@ -107,7 +112,7 @@ function lozano2024(
 
     densityProfile(
         [Au6_MOL_path],
-        mol_z0_snap,
+        Au6_MOL_z0_snap,
         :stellar_mass;
         yscale=log10,
         radius=r1,
@@ -124,7 +129,7 @@ function lozano2024(
     )
 
     ######################################################################################
-    # SFR vs physical time (radio separated using an stellar age histogram at redshift 0)
+    # SFR vs physical time (radio separated using the stellar age histogram at redshift 0)
     ######################################################################################
 
     da_ff = [
@@ -151,7 +156,7 @@ function lozano2024(
         output_path=joinpath(figures_path, Au6_MOL_label),
         base_filename="sfr_vs_physical_time_radio_separated",
         output_format=".pdf",
-        slice=mol_z0_snap,
+        slice=Au6_MOL_z0_snap,
         filter_function,
         da_functions=[GalaxyInspector.daStellarHistory],
         da_kwargs=[
@@ -210,9 +215,6 @@ function lozano2024(
     )
     grid = GalaxyInspector.LinearGrid(-1.5, 1.5, 200)
 
-    # Set the maximum number of counts
-    norm = 23760
-
     da_ff = [
         dd -> GalaxyInspector.filterWithinSphere(dd, (0.0u"kpc", r1), :zero),
         dd -> GalaxyInspector.filterWithinSphere(dd, (0.0u"kpc", r3), :zero),
@@ -229,7 +231,7 @@ function lozano2024(
         output_path=joinpath(figures_path, Au6_MOL_label),
         base_filename="circularity_histogram_radio_separated",
         output_format=".pdf",
-        slice=mol_z0_snap,
+        slice=Au6_MOL_z0_snap,
         filter_function,
         da_functions=[GalaxyInspector.daLineHistogram],
         da_args=[(:stellar_circularity, grid, :stars)],
@@ -270,9 +272,9 @@ function lozano2024(
         ],
     )
 
-    #############################################################################################
-    # Stellar density maps (face-on and edge-on projections with velocity fields, at redshift 0)
-    #############################################################################################
+    #########################################################################################
+    # Stellar density maps (face-on/edge-on projections with velocity fields, at redshift 0)
+    #########################################################################################
 
     temp_folder = joinpath(figures_path, Au6_MOL_label, "_stellar_density_maps")
 
@@ -280,7 +282,7 @@ function lozano2024(
 
     densityMapVelField(
         [Au6_MOL_path],
-        mol_z0_snap;
+        Au6_MOL_z0_snap;
         quantities=[:stellar_mass],
         types=[:particles],
         output_path=temp_folder,
@@ -309,7 +311,7 @@ function lozano2024(
 
     densityMapVelField(
         [Au6_MOL_path],
-        mol_z0_snap;
+        Au6_MOL_z0_snap;
         quantities=[:stellar_mass],
         types=[:particles],
         output_path=temp_folder,
@@ -331,7 +333,7 @@ function lozano2024(
 
     GalaxyInspector.hvcatImages(
         1,
-        glob("$(Au6_MOL_label)_stellar_mass_x*_density_map_snap_*.png", temp_folder);
+        glob("$(basename(Au6_MOL_path))_stellar_mass_x*_density_map_snap_*.png", temp_folder);
         output_path=joinpath(
             figures_path,
             Au6_MOL_label,
@@ -396,7 +398,7 @@ function lozano2024(
                 [heatmap!];
                 output_path=temp_folder,
                 base_filename="$(quantity)_$(projection_plane)",
-                slice=mol_z0_snap,
+                slice=Au6_MOL_z0_snap,
                 filter_function,
                 da_functions=[GalaxyInspector.daDensity2DProjection],
                 da_args=[(grid, quantity, :cells)],
@@ -478,9 +480,10 @@ function lozano2024(
 
     rm(temp_folder; recursive=true)
 
-    #################################################################################
-    # Density and fraction profiles (for the different gas components at redshift 0)
-    #################################################################################
+    ############################################################
+    # Profiles of the gas surface density and of the fractions,
+    # for the different gas components (at redshift 0)
+    ############################################################
 
     temp_folder = joinpath(figures_path, Au6_MOL_label, "_gas_profiles")
 
@@ -505,7 +508,7 @@ function lozano2024(
         [lines!];
         output_path=temp_folder,
         base_filename="gas_density_profiles",
-        slice=mol_z0_snap,
+        slice=Au6_MOL_z0_snap,
         filter_function,
         da_functions=[GalaxyInspector.daProfile],
         da_args=[(quantity, grid) for quantity in quantities],
@@ -534,7 +537,7 @@ function lozano2024(
         [lines!];
         output_path=temp_folder,
         base_filename="gas_fractions_profiles",
-        slice=mol_z0_snap,
+        slice=Au6_MOL_z0_snap,
         filter_function,
         da_functions=[GalaxyInspector.daProfile],
         da_args=[(quantity, grid) for quantity in quantities],
@@ -806,7 +809,7 @@ function lozano2024(
     end
 
     ##########################################################################################
-    # Gas components density maps (face-on projection evolution, from t = 2 Gyr to t = 5 Gyr)
+    # Gas components density maps (face-on projection, evolution from t = 2 Gyr to t = 5 Gyr)
     ##########################################################################################
 
     temp_folder = joinpath(figures_path, Au6_MOL_label, "_density_maps_evolution")
@@ -974,9 +977,11 @@ function lozano2024(
 
     rm(temp_folder; recursive=true)
 
-    ###############################################################################################
-    # Mass and fractions evolution (for the different gas components within a sphere of radius r1)
-    ###############################################################################################
+
+    #################################################################################
+    # Evolution of the masses and of the fractions, for the different gas components
+    # (at redshift 0 and within a sphere of radius r1)
+    #################################################################################
 
     r1_label = string(round(Int, ustrip(u"kpc", r1))) * "kpc"
 
@@ -1207,7 +1212,7 @@ function lozano2024(
     temp_folder = joinpath(figures_path, "comparison/_mass_evolution")
 
     simulations = [Au6_MOL_path, Au6_BLT_path, Au6_STD_path]
-    snaps = [mol_z0_snap, blt_z0_snap, std_z0_snap]
+    snaps = [Au6_MOL_z0_snap, Au6_BLT_z0_snap, Au6_STD_z0_snap]
     sim_names = [Au6_MOL_label, Au6_BLT_label, Au6_STD_label]
     quantities = [
         [:stellar_mass, :ionized_mass, :neutral_mass, :molecular_mass],
@@ -1300,11 +1305,11 @@ function lozano2024(
     jld2_paths = joinpath.(
         temp_folder,
         vcat(
-            ["sfr_$(label).jld2" for label in sim_names],
-            ["stellar_mass_$(label).jld2" for label in sim_names],
-            ["ionized_mass_$(label).jld2" for label in sim_names],
-            ["neutral_mass_$(label).jld2" for label in sim_names],
-            ["molecular_mass_$(label).jld2" for label in sim_names[1:2]],
+            ["sfr_$(label).jld2" for label in basename.(simulations)],
+            ["stellar_mass_$(label).jld2" for label in basename.(simulations)],
+            ["ionized_mass_$(label).jld2" for label in basename.(simulations)],
+            ["neutral_mass_$(label).jld2" for label in basename.(simulations)],
+            ["molecular_mass_$(label).jld2" for label in basename.(simulations)[1:2]],
         ),
     )
 
@@ -1419,7 +1424,7 @@ function lozano2024(
 
     end
 
-    rm(temp_folder; recursive=true)
+    # rm(temp_folder; recursive=true)
 
     #################################################################
     # Gas components density map (face-on projections at redshift 0)
@@ -1435,7 +1440,7 @@ function lozano2024(
         [:stellar_mass, :ionized_mass, :neutral_mass]
     ]
     sim_names = [Au6_MOL_label, Au6_BLT_label, Au6_STD_label]
-    snaps = [mol_z0_snap, blt_z0_snap, std_z0_snap]
+    snaps = [Au6_MOL_z0_snap, Au6_BLT_z0_snap, Au6_STD_z0_snap]
 
     colorbar_labels = [
         L"\log_{10} \, \Sigma_\star \,\, [\mathrm{M_\odot \, kpc^{-2}}]"
@@ -1566,10 +1571,11 @@ function lozano2024(
 
     ################################################################################################
     # Resolved Kennicutt–Schmidt law - Scatter
-    # Redshift 0 - High resolution
+    # Redshift 0 - Circular grid
     ################################################################################################
 
-    times = [11.0, 11.5, 12.0, 12.5, 13.0, 13.5, 14.0] .* u"Gyr"
+    # times = [11.0, 11.5, 12.0, 12.5, 13.0, 13.5, 14.0] .* u"Gyr"
+    times = [14.0] .* u"Gyr"
 
     mol_snap_list = GalaxyInspector.findClosestSnapshot(Au6_MOL_path, times)
     blt_snap_list = GalaxyInspector.findClosestSnapshot(Au6_BLT_path, times)
@@ -1585,7 +1591,9 @@ function lozano2024(
         [Au6_MOL_path],
         mol_snap_list;
         quantity=:molecular_mass,
+        reduce_grid=:circular,
         grid_size=30.0u"kpc",
+        bin_size=1.0u"kpc",
         gas_weights=nothing,
         measurements=true,
         output_file=joinpath(temp_folder, "Au6_MOL.png"),
@@ -1612,7 +1620,9 @@ function lozano2024(
         [Au6_BLT_path],
         blt_snap_list;
         quantity=:molecular_mass,
+        reduce_grid=:circular,
         grid_size=30.0u"kpc",
+        bin_size=1.0u"kpc",
         gas_weights=nothing,
         measurements=true,
         output_file=joinpath(temp_folder, "Au6_BLT.png"),
@@ -1653,7 +1663,9 @@ function lozano2024(
         [Au6_MOL_path],
         mol_snap_list;
         quantity=:neutral_mass,
+        reduce_grid=:circular,
         grid_size=30.0u"kpc",
+        bin_size=1.0u"kpc",
         gas_weights=nothing,
         measurements=true,
         output_file=joinpath(temp_folder, "Au6_MOL.png"),
@@ -1680,7 +1692,9 @@ function lozano2024(
         [Au6_BLT_path],
         blt_snap_list;
         quantity=:neutral_mass,
+        reduce_grid=:circular,
         grid_size=30.0u"kpc",
+        bin_size=1.0u"kpc",
         gas_weights=nothing,
         measurements=true,
         output_file=joinpath(temp_folder, "Au6_BLT.png"),
@@ -1707,7 +1721,9 @@ function lozano2024(
         [Au6_STD_path],
         std_snap_list;
         quantity=:neutral_mass,
+        reduce_grid=:circular,
         grid_size=30.0u"kpc",
+        bin_size=1.0u"kpc",
         gas_weights=nothing,
         measurements=true,
         output_file=joinpath(temp_folder, "Au6_STD.png"),
@@ -1734,6 +1750,107 @@ function lozano2024(
         3,
         joinpath.(temp_folder, ["Au6_MOL.png", "Au6_BLT.png", "Au6_STD.png"]);
         output_path=joinpath(figures_path, "comparison/neutral_bigiel2008.png"),
+    )
+
+    rm(temp_folder; recursive=true)
+
+    ##############
+    # Gas density
+    ##############
+
+    temp_folder = mkpath(joinpath(figures_path, "comparison/_ks_law_gas"))
+
+    kennicuttSchmidtLaw(
+        [Au6_MOL_path],
+        mol_snap_list;
+        quantity=:gas_mass,
+        reduce_grid=:circular,
+        grid_size=30.0u"kpc",
+        bin_size=1.0u"kpc",
+        gas_weights=nothing,
+        measurements=true,
+        output_file=joinpath(temp_folder, "Au6_MOL.png"),
+        filter_mode=:subhalo,
+        sim_labels=[Au6_MOL_label],
+        theme=Theme(
+            size=(850, 780),
+            Axis=(
+                limits=(5.5, 10.0, -4.3, 1.3),
+                xticks=6:1:10,
+                yticks=-4:1:1,
+            ),
+            Legend=(
+                nbanks=1,
+                labelsize=30,
+                halign=:left,
+                valign=:top,
+                padding=(60, 0, 0, 0),
+            ),
+        ),
+    )
+
+    kennicuttSchmidtLaw(
+        [Au6_BLT_path],
+        blt_snap_list;
+        quantity=:gas_mass,
+        reduce_grid=:circular,
+        grid_size=30.0u"kpc",
+        bin_size=1.0u"kpc",
+        gas_weights=nothing,
+        measurements=true,
+        output_file=joinpath(temp_folder, "Au6_BLT.png"),
+        filter_mode=:subhalo,
+        sim_labels=[Au6_BLT_label],
+        theme=Theme(
+            size=(850, 780),
+            Axis=(
+                limits=(5.5, 10.0, -4.3, 1.3),
+                xticks=6:1:10,
+                yticks=-4:1:1,
+            ),
+            Legend=(
+                nbanks=1,
+                labelsize=30,
+                halign=:left,
+                valign=:top,
+                padding=(60, 0, 0, 0),
+            ),
+        ),
+    )
+
+    kennicuttSchmidtLaw(
+        [Au6_STD_path],
+        std_snap_list;
+        quantity=:gas_mass,
+        reduce_grid=:circular,
+        grid_size=30.0u"kpc",
+        bin_size=1.0u"kpc",
+        gas_weights=nothing,
+        measurements=true,
+        output_file=joinpath(temp_folder, "Au6_STD.png"),
+        filter_mode=:subhalo,
+        sim_labels=[Au6_STD_label],
+        theme=Theme(
+            size=(850, 780),
+            Axis=(
+                limits=(4.5, 10.5, -4.1, 1.1),
+                xticks=5:1:10,
+                yticks=-4:1:1,
+            ),
+            Legend=(
+                nbanks=1,
+                labelsize=30,
+                halign=:left,
+                valign=:top,
+                padding=(60, 0, 0, 0),
+            ),
+        ),
+    )
+
+    GalaxyInspector.hvcatImages(
+        3,
+        joinpath.(temp_folder, ["Au6_MOL.png", "Au6_BLT.png", "Au6_STD.png"]);
+        output_path=joinpath(figures_path, "comparison/gas_bigiel2008.png"),
     )
 
     rm(temp_folder; recursive=true)
@@ -1937,10 +2054,7 @@ function lozano2024(
 
     simulationReport(simulation_paths; output_path=report_path)
 
-    snapshotReport(Au6_MOL_path, mol_z0_snap; output_path=report_path, filter_mode=:subhalo)
-    snapshotReport(Au6_BLT_path, blt_z0_snap; output_path=report_path, filter_mode=:subhalo)
-    snapshotReport(Au6_STD_path, std_z0_snap; output_path=report_path, filter_mode=:subhalo)
-    snapshotReport(Au6_MOL_LR_path, mol_lf_z0_snap; output_path=report_path, filter_mode=:subhalo)
+    snapshotReport(simulation_paths, z0_snaps; output_path=report_path, filter_mode=:subhalo)
 
     ##############################################
     # INFO FILE - Insitu/Exsitu stellar fractions
@@ -1951,7 +2065,7 @@ function lozano2024(
         Dict(:stars => ["ID  "]),
     )
 
-    data_dict = GalaxyInspector.makeDataDict(Au6_MOL_path, mol_z0_snap, request)
+    data_dict = GalaxyInspector.makeDataDict(Au6_MOL_path, Au6_MOL_z0_snap, request)
 
     GalaxyInspector.filterData!(data_dict; filter_function)
 
@@ -1989,7 +2103,7 @@ function lozano2024(
         Dict(:stars => ["GAGE", "MASS"]),
     )
 
-    data_dict = makeDataDict(Au6_MOL_path, mol_z0_snap, request)
+    data_dict = makeDataDict(Au6_MOL_path, Au6_MOL_z0_snap, request)
 
     ts, sfrs = GalaxyInspector.daStellarHistory(data_dict; filter_function)
 
@@ -2018,7 +2132,7 @@ function lozano2024(
 
     radial_limits = [40.0, 60.0] .* u"kpc"
 
-    data_dict = makeDataDict(Au6_MOL_path, mol_z0_snap, request)
+    data_dict = makeDataDict(Au6_MOL_path, Au6_MOL_z0_snap, request)
 
     GalaxyInspector.translateData!(data_dict, translation)
 
@@ -2137,7 +2251,7 @@ function lozano2024(
         ),
     )
 
-    data_dict = makeDataDict(Au6_MOL_path, mol_z0_snap, request)
+    data_dict = makeDataDict(Au6_MOL_path, Au6_MOL_z0_snap, request)
 
     GalaxyInspector.translateData!(data_dict, translation)
 
@@ -2223,7 +2337,7 @@ function lozano2024(
     ################################################################################################
 
     simulations = [Au6_MOL_path, Au6_BLT_path, Au6_STD_path]
-    snaps = [mol_z0_snap, blt_z0_snap, std_z0_snap]
+    snaps = [Au6_MOL_z0_snap, Au6_BLT_z0_snap, Au6_STD_z0_snap]
     row_labels = ["Stars", "Gas", "HII", L"\mathrm{HI + H_2}", L"\mathrm{H_2}"]
     header = [
         L"R_{95}",
@@ -2433,17 +2547,31 @@ end
 
 function (@main)(ARGS)
 
+    # If logging into a file will be enable
     LOGGING = true
-    BASE_OUT_PATH = "./"
-    BASE_SRC_PATH = "F:/simulations/2024-11-05"
-    SIMULATIONS = ["Au6_MOL", "Au6_BLT", "Au6_STD", "Au6_MOL_LR"]
-    LABELS = ["Au6_MOL", "Au6_BLT", "Au6_STD", "Au6_MOL_LR"]
-    SIMULATION_PATHS = joinpath.(BASE_SRC_PATH, SIMULATIONS)
 
+    # Output folder
+    BASE_OUT_PATH = "./"
+
+    # Simulation folders
+    SIMULATION_PATHS = [
+        "F:/simulations/lozano_2024/test_cosmo_27",
+        "F:/simulations/lozano_2024/test_cosmo_blitz_03",
+        "F:/simulations/lozano_2024/test_cosmo_volker_06",
+        "F:/simulations/lozano_2024/test_cosmo_37",
+    ]
+
+    # Simulation labels
+    LABELS = ["Au6_MOL", "Au6_BLT", "Au6_STD", "Au6_MOL_LR"]
+
+    # Characteristic radii
     R1 = 40.0u"kpc"
     R2 = 100.0u"kpc"
     R3 = 2.0u"kpc"
 
-    lozano2024(SIMULATION_PATHS, LABELS, BASE_OUT_PATH, R1, R2, R3, LOGGING)
+    # Number of count to normalice the circularity histogram
+    NORM = 23760
+
+    lozano2024(SIMULATION_PATHS, LABELS, BASE_OUT_PATH, R1, R2, R3, NORM, LOGGING)
 
 end

@@ -44,26 +44,29 @@ function proceedingAAA2024(
     logging::Bool,
 )::Nothing
 
-    # Set the paths
+    # Construct the necessary folders
+    figures_path = mkpath(joinpath(base_out_path, "figures"))
+    report_path = mkpath(joinpath(base_out_path, "reports"))
+
+    # If requested, activate logging
+    if logging
+        log_file = open(joinpath(report_path, "logs.txt"), "w+")
+        GalaxyInspector.setLogging!(logging; stream=log_file)
+    end
+
+    # Select the simulation paths
     Au6_MOL_path = simulation_paths[1]
     Au6_STD_path = simulation_paths[2]
 
-    # Set the labels
+    # Select the simulation labels
     Au6_MOL_label = labels[1]
     Au6_STD_label = labels[2]
 
-    # Select the last snapshot of each simulation
-    mol_z0_snap = GalaxyInspector.findClosestSnapshot(Au6_MOL_path, 14.0u"Gyr")
-    std_z0_snap = GalaxyInspector.findClosestSnapshot(Au6_STD_path, 14.0u"Gyr")
+    # Select the redshift 0 snapshot of each simulation
+    Au6_MOL_z0_snap = GalaxyInspector.findClosestSnapshot(Au6_MOL_path, 14.0u"Gyr")
+    Au6_STD_z0_snap = GalaxyInspector.findClosestSnapshot(Au6_STD_path, 14.0u"Gyr")
 
-    z0_snaps = [mol_z0_snap, std_z0_snap]
-
-    # Construct the necessary folders and files
-    figures_path = mkpath(joinpath(base_out_path, "figures"))
-    report_path = mkpath(joinpath(base_out_path, "reports"))
-    log_file = open(joinpath(report_path, "logs.txt"), "w+")
-
-    GalaxyInspector.setLogging!(logging; stream=log_file)
+    z0_snaps = [Au6_MOL_z0_snap, Au6_STD_z0_snap]
 
     ######################################################################
     # SFR vs physical time (using an stellar age histogram at redshift 0)
@@ -133,9 +136,9 @@ function proceedingAAA2024(
         sim_labels=[Au6_MOL_label, Au6_STD_label],
     )
 
-    #############################################################################################
-    # Stellar density maps (face-on and edge-on projections with velocity fields, at redshift 0)
-    #############################################################################################
+    #########################################################################################
+    # Stellar density maps (face-on/edge-on projections with velocity fields, at redshift 0)
+    #########################################################################################
 
     temp_folder = joinpath(figures_path, "_stellar_maps")
 
@@ -360,9 +363,10 @@ function proceedingAAA2024(
 
     rm(temp_folder; force=true, recursive=true)
 
-    #############################################################################################
-    # Profiles of the gas surface density and of the fractions, for the different gas components
-    #############################################################################################
+    ############################################################
+    # Profiles of the gas surface density and of the fractions,
+    # for the different gas components (at redshift 0)
+    ############################################################
 
     temp_folder = joinpath(figures_path, "_gas_profiles")
 
@@ -414,7 +418,7 @@ function proceedingAAA2024(
         [lines!];
         output_path=joinpath(temp_folder, basename(Au6_MOL_path)),
         base_filename="fractions_profiles",
-        slice=mol_z0_snap,
+        slice=Au6_MOL_z0_snap,
         filter_function,
         da_functions=[GalaxyInspector.daProfile],
         da_args=[(quantity, grid) for quantity in quantities],
@@ -436,7 +440,7 @@ function proceedingAAA2024(
         [lines!];
         output_path=joinpath(temp_folder, basename(Au6_STD_path)),
         base_filename="fractions_profiles",
-        slice=std_z0_snap,
+        slice=Au6_STD_z0_snap,
         filter_function,
         da_functions=[GalaxyInspector.daProfile],
         da_args=[(quantity, grid) for quantity in quantities],
@@ -580,6 +584,10 @@ function proceedingAAA2024(
 
     rm(temp_folder; recursive=true)
 
+    ################################################################################################
+    # Close files
+    ################################################################################################
+
     if logging
         close(log_file)
     end
@@ -590,13 +598,21 @@ end
 
 function (@main)(ARGS)
 
+    # If logging into a file will be enable
     LOGGING = true
+
+    # Output folder
     BASE_OUT_PATH = "./"
-    BASE_SRC_PATH = "F:/simulations/2024-10-18/cosmological/"
+
+    # Simulation folders
+    BASE_SRC_PATH = "F:/simulations/lozano_2024/"
     SIMULATIONS = ["test_cosmo_27", "test_cosmo_volker_06"]
-    LABELS = ["Au6_MOL", "Au6_STD"]
     SIMULATION_PATHS = joinpath.(BASE_SRC_PATH, SIMULATIONS)
 
+    # Simulation labels
+    LABELS = ["Au6_MOL", "Au6_STD"]
+
+    # Characteristic radii
     R1 = 40.0u"kpc"
     R2 = 100.0u"kpc"
     R3 = 2.0u"kpc"

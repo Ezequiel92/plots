@@ -42,11 +42,15 @@ function basic_analysis(
     logging::Bool,
 )::Nothing
 
+    # Create the necessary folders
     figures_path = mkpath(joinpath(base_out_path, "figures"))
     report_path = mkpath(joinpath(base_out_path, "reports"))
-    log_file = open(joinpath(report_path, "logs.txt"), "w+")
 
-    GalaxyInspector.setLogging!(logging; stream=log_file)
+    # If requested, activate logging
+    if logging
+        log_file = open(joinpath(report_path, "logs.txt"), "w+")
+        GalaxyInspector.setLogging!(logging; stream=log_file)
+    end
 
     # Select the last snapshot
     n_snapshots = GalaxyInspector.countSnapshot(simulation_path)
@@ -407,7 +411,90 @@ function basic_analysis(
 
     rm(temp_folder; recursive=true)
 
-    close(log_file)
+    ########################################
+    # Velocity cubes (of the last snapshot)
+    ########################################
+
+    gasVelocityCubes(
+        [simulation_path],
+        n_snapshots;
+        output_file=joinpath(report_path, "gas_velocity_cube.hdf5"),
+    )
+
+    stellarVelocityCubes(
+        [simulation_path],
+        n_snapshots;
+        output_file=joinpath(report_path, "stellar_velocity_cube.hdf5"),
+    )
+
+    #####################################################################################
+    # Resolved Kennicutt–Schmidt law - Scatter with circular grid (of the last snapshot)
+    #####################################################################################
+
+    ####################
+    # Molecular density
+    ####################
+
+    kennicuttSchmidtLaw(
+        [simulation_path],
+        n_snapshots;
+        quantity=:molecular_mass,
+        reduce_grid=:circular,
+        grid_size=30.0u"kpc",
+        bin_size=1.0u"kpc",
+        gas_weights=nothing,
+        measurements=true,
+        output_file=joinpath(figures_path, "molecular_ks_law.png"),
+        filter_mode=:subhalo,
+        sim_labels=[basename(simulation_path)],
+        theme=Theme(Legend=(padding=(10, 0, 0, 0),),),
+    )
+
+    ##################
+    # Neutral density
+    ##################
+
+    kennicuttSchmidtLaw(
+        [simulation_path],
+        n_snapshots;
+        quantity=:neutral_mass,
+        reduce_grid=:circular,
+        grid_size=30.0u"kpc",
+        bin_size=1.0u"kpc",
+        gas_weights=nothing,
+        measurements=true,
+        output_file=joinpath(figures_path, "neutral_ks_law.png"),
+        filter_mode=:subhalo,
+        sim_labels=[basename(simulation_path)],
+        theme=Theme(Legend=(padding=(10, 0, 0, 20),),),
+    )
+
+    ##############
+    # Gas density
+    ##############
+
+    kennicuttSchmidtLaw(
+        [simulation_path],
+        n_snapshots;
+        quantity=:gas_mass,
+        reduce_grid=:circular,
+        grid_size=30.0u"kpc",
+        bin_size=1.0u"kpc",
+        gas_weights=nothing,
+        measurements=true,
+        output_file=joinpath(figures_path, "total_gas_ks_law.png"),
+        filter_mode=:subhalo,
+        sim_labels=[basename(simulation_path)],
+        theme=Theme(Legend=(padding=(10, 0, 0, 20),),),
+    )
+
+    ################################################################################################
+    # Close files
+    ################################################################################################
+
+    if logging
+        close(log_file)
+    end
 
     return nothing
 
