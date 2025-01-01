@@ -627,6 +627,7 @@ function lozano2024(
     ###############################################################
     # Stellar metallicity and birth times histograms, at t = 1 Gyr
     ###############################################################
+    #TODO
 
     time_list = [0.0, 0.65, 0.75, 0.85, 1.0] .* u"Gyr"
 
@@ -1424,7 +1425,7 @@ function lozano2024(
 
     end
 
-    # rm(temp_folder; recursive=true)
+    rm(temp_folder; recursive=true)
 
     #################################################################
     # Gas components density map (face-on projections at redshift 0)
