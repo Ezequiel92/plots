@@ -3,5 +3,5 @@ equilibrium
 hestia
 ks_law
 extra_plots
-*/reports
-*/figures
+*/*reports*
+*/*figures*

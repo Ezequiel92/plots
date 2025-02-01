@@ -42,18 +42,23 @@ function basic_analysis(
     logging::Bool,
 )::Nothing
 
+    # Select the last snapshot
+    n_snapshots = GalaxyInspector.countSnapshot(simulation_path)
+
+    (
+        !iszero(n_snapshots) ||
+        throw(ArgumentError("basic_analysis: $(simulation_path) has no snapshots"))
+    )
+
     # Create the necessary folders
-    figures_path = mkpath(joinpath(base_out_path, "figures"))
-    report_path = mkpath(joinpath(base_out_path, "reports"))
+    figures_path = mkpath(joinpath(base_out_path, "$(basename(simulation_path))_figures"))
+    report_path = mkpath(joinpath(base_out_path, "$(basename(simulation_path))_reports"))
 
     # If requested, activate logging
     if logging
         log_file = open(joinpath(report_path, "logs.txt"), "w+")
         GalaxyInspector.setLogging!(logging; stream=log_file)
     end
-
-    # Select the last snapshot
-    n_snapshots = GalaxyInspector.countSnapshot(simulation_path)
 
     ###############
     # Report files
@@ -235,7 +240,7 @@ function basic_analysis(
             palette=(linestyle=[:solid], color=[Makie.wong_colors()[2], :black]),
             Legend=(nbanks=1, halign=:left, valign=:top, padding=(40, 0, 0, 0)),
         ),
-        sim_labels=["All stellar", "Gas"],
+        sim_labels=["All stars", "Gas"],
     )
 
     plotSnapshot(
@@ -271,7 +276,7 @@ function basic_analysis(
             palette=(linestyle=[:solid], color=[Makie.wong_colors()[2], :black]),
             Legend=(nbanks=1, halign=:left, valign=:top, padding=(40, 0, 0, 0)),
         ),
-        sim_labels=["Young stellar", "Gas"],
+        sim_labels=["Young stars", "Gas"],
     )
 
     ################################################################################
@@ -509,14 +514,19 @@ function (@main)(ARGS)
     BASE_OUT_PATH = "./"
 
     # Simulation folder
-    SIMULATION_PATH = "F:/simulations/Au6_MOL_test/Au6_MOL_test18"
+    # SIMULATION_PATH = "F:/simulations/Au6_MOL_test/Au6_MOL_test18"
+    # SIMULATION_PATH = "F:/simulations/Au6_MOL_test/Au6_MOL_test21"
+    # SIMULATION_PATH = "F:/simulations/lozano_2025/test_cosmo_blitz_04"
+    # SIMULATION_PATH = "F:/simulations/Au6_MOL_test/Au6_MOL_test22"
+    SIMULATION_PATH = "F:/simulations/current/Au6_MOL"
 
     # Characteristic radii
     R1 = 40.0u"kpc"
     R2 = 2.0u"kpc"
 
     # Number of count to normalice the circularity histogram
-    NORM = 36251
+    # NORM = 36251
+    NORM = 54683
 
     basic_analysis(SIMULATION_PATH, BASE_OUT_PATH, R1, R2, NORM, LOGGING)
 
