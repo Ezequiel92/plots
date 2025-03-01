@@ -514,18 +514,13 @@ function (@main)(ARGS)
     BASE_OUT_PATH = "./"
 
     # Simulation folder
-    # SIMULATION_PATH = "F:/simulations/Au6_MOL_test/Au6_MOL_test18"
-    # SIMULATION_PATH = "F:/simulations/Au6_MOL_test/Au6_MOL_test21"
-    # SIMULATION_PATH = "F:/simulations/lozano_2025/test_cosmo_blitz_04"
-    # SIMULATION_PATH = "F:/simulations/Au6_MOL_test/Au6_MOL_test22"
-    SIMULATION_PATH = "F:/simulations/current/Au6_MOL"
+    SIMULATION_PATH = "F:/simulations/current/Au6_MOL_test23"
 
     # Characteristic radii
     R1 = 40.0u"kpc"
     R2 = 2.0u"kpc"
 
     # Number of count to normalice the circularity histogram
-    # NORM = 36251
     NORM = 54683
 
     basic_analysis(SIMULATION_PATH, BASE_OUT_PATH, R1, R2, NORM, LOGGING)
