@@ -416,25 +416,157 @@ function basic_analysis(
 
     rm(temp_folder; recursive=true)
 
-    ########################################
-    # Velocity cubes (of the last snapshot)
-    ########################################
+    ##############################
+    # Maps of diferent quantities
+    ##############################
 
-    gasVelocityCubes(
+    temp_folder = joinpath(figures_path, "all_maps")
+
+    densityMap(
         [simulation_path],
         n_snapshots;
-        output_file=joinpath(report_path, "gas_velocity_cube.hdf5"),
+        quantities=[:gas_mass],
+        types=[:cells],
+        output_path=temp_folder,
+        filter_mode=:subhalo,
+        projection_planes=[:xy],
+        box_size=65.0u"kpc",
+        pixel_length=65.0u"kpc" / 400.0,
+        theme=Theme(
+            size=(910, 760),
+            figure_padding=(20, 20, 30, 20),
+            Colorbar=(
+                label=L"\mathrm{log}_{10} \, \Sigma_\mathrm{gas} \,\, [\mathrm{M_\odot \, kpc^{-2}}]",
+            ),
+        ),
+        title="Gas density",
+        colorbar=true,
+        colorrange=nothing,
     )
 
-    stellarVelocityCubes(
+    densityMap(
         [simulation_path],
         n_snapshots;
-        output_file=joinpath(report_path, "stellar_velocity_cube.hdf5"),
+        quantities=[:stellar_mass],
+        types=[:particles],
+        output_path=temp_folder,
+        filter_mode=:subhalo,
+        projection_planes=[:xy],
+        box_size=65.0u"kpc",
+        pixel_length=65.0u"kpc" / 400.0,
+        theme=Theme(
+            size=(910, 760),
+            figure_padding=(20, 20, 30, 20),
+            Colorbar=(
+                label=L"\mathrm{log}_{10} \, \Sigma_\star \,\, [\mathrm{M_\odot \, kpc^{-2}}]",
+            ),
+        ),
+        title="Stellar density",
+        colorbar=true,
+        colorrange=nothing,
     )
 
-    #####################################################################################
-    # Resolved Kennicutt–Schmidt law - Scatter with circular grid (of the last snapshot)
-    #####################################################################################
+    temperatureMap(
+        [simulation_path],
+        n_snapshots;
+        type=:cells,
+        output_path=temp_folder,
+        filter_mode=:subhalo,
+        projection_planes=[:xy],
+        box_size=65.0u"kpc",
+        pixel_length=65.0u"kpc" / 400.0,
+        theme=Theme(
+            size=(910, 760),
+            figure_padding=(20, 20, 30, 20),
+            Colorbar=(label=L"\mathrm{log}_{10} \, T \,\, [\mathrm{K}]",),
+        ),
+        title="Gas temperature",
+        colorbar=true,
+        colorrange=nothing,
+    )
+
+    metallicityMap(
+        [simulation_path],
+        n_snapshots;
+        components=[:gas],
+        types=[:cells],
+        output_path=temp_folder,
+        filter_mode=:subhalo,
+        projection_planes=[:xy],
+        box_size=65.0u"kpc",
+        pixel_length=65.0u"kpc" / 400.0,
+        theme=Theme(
+            size=(910, 760),
+            figure_padding=(20, 20, 30, 20),
+            Colorbar=(label=L"\mathrm{log}_{10} \, Z_\mathrm{gas} \, [\mathrm{Z_\odot}]",),
+        ),
+        title="Gas metallicity",
+        colorbar=true,
+        colorrange=nothing,
+    )
+
+    metallicityMap(
+        [simulation_path],
+        n_snapshots;
+        components=[:stars],
+        types=[:particles],
+        output_path=temp_folder,
+        filter_mode=:subhalo,
+        projection_planes=[:xy],
+        box_size=65.0u"kpc",
+        pixel_length=65.0u"kpc" / 400.0,
+        theme=Theme(
+            size=(910, 760),
+            figure_padding=(20, 20, 30, 20),
+            Colorbar=(label=L"\mathrm{log}_{10} \, Z_\star \, [\mathrm{Z_\odot}]",),
+        ),
+        title="Stellar metallicity",
+        colorbar=true,
+        colorrange=nothing,
+    )
+
+    gasSFRMap(
+        [simulation_path],
+        n_snapshots;
+        type=:cells,
+        output_path=temp_folder,
+        filter_mode=:subhalo,
+        projection_planes=[:xy],
+        box_size=65.0u"kpc",
+        pixel_length=65.0u"kpc" / 400.0,
+        theme=Theme(
+            size=(910, 760),
+            figure_padding=(20, 20, 30, 20),
+            Colorbar=(
+                label=L"\mathrm{log}_{10} \, SFR_\mathrm{gas} \, [\mathrm{M_\odot \, yr^{-1}}]",
+            ),
+        ),
+        title="Gas SFR",
+        colorbar=true,
+        colorrange=nothing,
+    )
+
+    GalaxyInspector.hvcatImages(
+        3,
+        joinpath.(
+            temp_folder,
+            [
+                "$(basename(simulation_path))_gas_mass_xy_density_map_snap_127.png",
+                "$(basename(simulation_path))_stellar_mass_xy_density_map_snap_127.png",
+                "$(basename(simulation_path))_xy_gas_sfr_map_snap_127.png",
+                "$(basename(simulation_path))_xy_temperature_map_snap_127.png",
+                "$(basename(simulation_path))_gas_xy_metallicity_map_snap_127.png",
+                "$(basename(simulation_path))_stars_xy_metallicity_map_snap_127.png",
+            ]
+        );
+        output_path=joinpath(figures_path, "all_maps.png"),
+    )
+
+    rm(temp_folder, recursive=true, force=true)
+
+    ###################################################################################
+    # Resolved Kennicutt–Schmidt law - Scatter with square grid (of the last snapshot)
+    ###################################################################################
 
     ####################
     # Molecular density
@@ -444,34 +576,17 @@ function basic_analysis(
         [simulation_path],
         n_snapshots;
         quantity=:molecular_mass,
-        reduce_grid=:circular,
+        reduce_grid=:square,
         grid_size=30.0u"kpc",
-        bin_size=1.0u"kpc",
+        bin_size=1.5u"kpc",
         gas_weights=nothing,
         measurements=true,
+        measurement_type=:main,
+        fit=true,
         output_file=joinpath(figures_path, "molecular_ks_law.png"),
         filter_mode=:subhalo,
         sim_labels=[basename(simulation_path)],
         theme=Theme(Legend=(padding=(10, 0, 0, 0),),),
-    )
-
-    ##################
-    # Neutral density
-    ##################
-
-    kennicuttSchmidtLaw(
-        [simulation_path],
-        n_snapshots;
-        quantity=:neutral_mass,
-        reduce_grid=:circular,
-        grid_size=30.0u"kpc",
-        bin_size=1.0u"kpc",
-        gas_weights=nothing,
-        measurements=true,
-        output_file=joinpath(figures_path, "neutral_ks_law.png"),
-        filter_mode=:subhalo,
-        sim_labels=[basename(simulation_path)],
-        theme=Theme(Legend=(padding=(10, 0, 0, 20),),),
     )
 
     ##############
@@ -482,20 +597,22 @@ function basic_analysis(
         [simulation_path],
         n_snapshots;
         quantity=:gas_mass,
-        reduce_grid=:circular,
+        reduce_grid=:square,
         grid_size=30.0u"kpc",
-        bin_size=1.0u"kpc",
+        bin_size=1.5u"kpc",
         gas_weights=nothing,
         measurements=true,
+        measurement_type=:main,
+        fit=true,
         output_file=joinpath(figures_path, "total_gas_ks_law.png"),
         filter_mode=:subhalo,
         sim_labels=[basename(simulation_path)],
         theme=Theme(Legend=(padding=(10, 0, 0, 20),),),
     )
 
-    ################################################################################################
+    ##############
     # Close files
-    ################################################################################################
+    ##############
 
     if logging
         close(log_file)
@@ -514,14 +631,14 @@ function (@main)(ARGS)
     BASE_OUT_PATH = "./"
 
     # Simulation folder
-    SIMULATION_PATH = "F:/simulations/current/Au6_MOL_test23"
+    SIMULATION_PATH = "F:/simulations/lozano_2025/Au6_MOL_test18"
 
     # Characteristic radii
     R1 = 40.0u"kpc"
     R2 = 2.0u"kpc"
 
     # Number of count to normalice the circularity histogram
-    NORM = 54683
+    NORM = 10000
 
     basic_analysis(SIMULATION_PATH, BASE_OUT_PATH, R1, R2, NORM, LOGGING)
 

@@ -39,8 +39,6 @@ function proceedingAAA2024(
     labels::Vector{String},
     base_out_path::String,
     r1::Unitful.Length,
-    r2::Unitful.Length,
-    r3::Unitful.Length,
     logging::Bool,
 )::Nothing
 
@@ -113,10 +111,11 @@ function proceedingAAA2024(
         yaxis_var_name=y_plot_params.var_name,
         yaxis_scale_func=log10,
         theme=Theme(
+            fontsize=45,
             size=(880, 570),
             figure_padding=(1, 20, 5, 15),
             palette=(
-                color=[:orangered2, :navy],
+                color=[Makie.wong_colors()[3], Makie.wong_colors()[4]],
                 linestyle=[:solid],
             ),
             Axis=(
@@ -129,7 +128,7 @@ function proceedingAAA2024(
                 halign=:right,
                 valign=:bottom,
                 padding=(0, 25, 10, 0),
-                labelsize=30,
+                labelsize=40,
                 rowgap=-4,
             ),
         ),
@@ -149,7 +148,7 @@ function proceedingAAA2024(
     grid_vf = GalaxyInspector.SquareGrid(box_size, 25)
 
     filter_function, translation, rotation, request = GalaxyInspector.selectFilter(
-        :all_subhalo,
+        :subhalo,
         GalaxyInspector.plotParams(:stellar_mass).request,
     )
 
@@ -212,13 +211,21 @@ function proceedingAAA2024(
     )
 
     current_theme = merge(
-        Theme(Heatmap=(colorrange=(5, 10),),),
+        Theme(
+            fontsize=45,
+            Heatmap=(
+                colorrange=(5, 10),
+                colormap=:nipy_spectral,
+                nan_color=ColorSchemes.nipy_spectral[1],
+            ),
+        ),
         GalaxyInspector.DEFAULT_THEME,
         theme_latexfonts(),
     )
 
     with_theme(current_theme) do
-        f = Figure(size=(1200, 740), figure_padding=(5, 5, 0, 13))
+
+        f = Figure(size=(1200, 740), figure_padding=(5, 5, 0, 15))
 
         ax_1 = CairoMakie.Axis(
             f[1, 1];
@@ -269,7 +276,7 @@ function proceedingAAA2024(
                 align=(:left, :top),
                 color=:white,
                 space=:relative,
-                fontsize=40,
+                fontsize=50,
             )
 
         end
@@ -292,12 +299,13 @@ function proceedingAAA2024(
                 align=(:left, :top),
                 color=:white,
                 space=:relative,
-                fontsize=40,
+                fontsize=50,
             )
 
             Colorbar(
                 f[1, 3];
                 ticks=5:1:10,
+                colormap=:nipy_spectral,
                 colorrange=(5, 10),
                 label=L"\mathrm{log}_{10} \, \Sigma_\star \,\, [\mathrm{M_\odot \, kpc^{-2}}]",
             )
@@ -355,7 +363,7 @@ function proceedingAAA2024(
         rowsize!(f.layout, 2, Relative(1/3.8))
         rowsize!(f.layout, 1, Makie.Fixed(pixelarea(ax_1.scene)[].widths[2]))
 
-        colgap!(f.layout, 25)
+        colgap!(f.layout, 30)
 
         Makie.save(joinpath(figures_path, "stellar_maps.png"), f)
 
@@ -457,7 +465,13 @@ function proceedingAAA2024(
     density_paths = joinpath.(temp_folder, basename.(simulation_paths), "density_profiles.jld2")
     fraction_paths = joinpath.(temp_folder, basename.(simulation_paths), "fractions_profiles.jld2")
 
-    with_theme(merge(theme_latexfonts(), GalaxyInspector.DEFAULT_THEME)) do
+    current_theme = merge(
+        Theme(fontsize=45,),
+        GalaxyInspector.DEFAULT_THEME,
+        theme_latexfonts(),
+    )
+
+    with_theme(current_theme) do
 
         f = Figure(size=(880, 1600),)
 
@@ -488,6 +502,7 @@ function proceedingAAA2024(
                 color=Makie.wong_colors()[2],
                 label="Au6_MOL - Stellar density",
             )
+
         end
 
         jldopen(density_paths[2], "r") do jld2_file
@@ -509,7 +524,7 @@ function proceedingAAA2024(
 
         end
 
-        axislegend(ax_1, position=:rt, framevisible=false, fontsize=16, nbanks=1, rowgap=-5)
+        axislegend(ax_1, position=:rt, framevisible=false, fontsize=30, nbanks=1, rowgap=-5)
 
         ax_2 = CairoMakie.Axis(
             f[2, 1];
@@ -572,7 +587,7 @@ function proceedingAAA2024(
 
         end
 
-        axislegend(ax_2, position=:rt, framevisible=false, fontsize=16, nbanks=1, rowgap=-5)
+        axislegend(ax_2, position=:rt, framevisible=false, fontsize=30, nbanks=1, rowgap=-5)
 
         linkxaxes!(ax_1, ax_2)
         rowsize!(f.layout, 1, Relative(1/2))
@@ -605,8 +620,8 @@ function (@main)(ARGS)
     BASE_OUT_PATH = "./"
 
     # Simulation folders
-    BASE_SRC_PATH = "F:/simulations/lozano_2024/"
-    SIMULATIONS = ["test_cosmo_27", "test_cosmo_volker_06"]
+    BASE_SRC_PATH = "F:/simulations/lozano_2025/"
+    SIMULATIONS = ["Au6_MOL_test18", "test_cosmo_volker_06"]
     SIMULATION_PATHS = joinpath.(BASE_SRC_PATH, SIMULATIONS)
 
     # Simulation labels
@@ -614,9 +629,7 @@ function (@main)(ARGS)
 
     # Characteristic radii
     R1 = 40.0u"kpc"
-    R2 = 100.0u"kpc"
-    R3 = 2.0u"kpc"
 
-    proceedingAAA2024(SIMULATION_PATHS, LABELS, BASE_OUT_PATH, R1, R2, R3, LOGGING)
+    proceedingAAA2024(SIMULATION_PATHS, LABELS, BASE_OUT_PATH, R1, LOGGING)
 
 end
