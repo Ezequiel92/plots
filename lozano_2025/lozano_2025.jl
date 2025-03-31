@@ -292,7 +292,7 @@ function lozano2025(
         ax = CairoMakie.Axis(
             f[1, 1];
             xlabel=L"\log_{10} \, Z_\star \, / \, Z_\odot",
-            ylabel="counts",
+            ylabel="# stars",
             yscale=log10,
             limits=(nothing, nothing, nothing, exp10(3)),
             xticks=(
@@ -413,7 +413,7 @@ function lozano2025(
         ax = CairoMakie.Axis(
             f[1, 1];
             xlabel=L"\mathrm{Birth \,\, time \, [Gyr]}",
-            ylabel="counts",
+            ylabel="# stars",
             limits=(nothing, nothing, nothing, exp10(3)),
             yscale=log10,
             xticks=0.0:0.2:1.6,
@@ -720,14 +720,14 @@ function lozano2025(
     colorbar_ranges = [(7.0, 11.0), (3.0, 10.0), (4.0, 11.0), (7.0, 10.0)]
     colorbar_ticks = [7:1:11, 3:1:10, 4:1:11, 7:1:10]
     colorbar_labels = [
-        L"\log_{10} \, \Sigma_\star \,\, [\mathrm{M_\odot \, kpc^{-2}}]"
-        L"\log_{10} \, \Sigma_\mathrm{H_2} \,\, [\mathrm{M_\odot \, kpc^{-2}}]"
-        L"\log_{10} \, \Sigma_\mathrm{HI} \,\, [\mathrm{M_\odot \, kpc^{-2}}]"
-        L"\log_{10} \, \Sigma_\mathrm{HII} \,\, [\mathrm{M_\odot \, kpc^{-2}}]"
+        L"\log_{10} \, \Sigma_\star \,\, [\mathrm{M_\odot \, ckpc^{-2}}]"
+        L"\log_{10} \, \Sigma_\mathrm{H_2} \,\, [\mathrm{M_\odot \, ckpc^{-2}}]"
+        L"\log_{10} \, \Sigma_\mathrm{HI} \,\, [\mathrm{M_\odot \, ckpc^{-2}}]"
+        L"\log_{10} \, \Sigma_\mathrm{HII} \,\, [\mathrm{M_\odot \, ckpc^{-2}}]"
     ]
 
-    x_label = GalaxyInspector.getLabel("x", 0, u"kpc")
-    y_label = GalaxyInspector.getLabel("y", 0, u"kpc")
+    x_label = L"x \,\, [\mathrm{ckpc}]"
+    y_label = L"y \,\, [\mathrm{ckpc}]"
     n_rows = length(quantities)
     n_cols = length(snap_list)
     x_size = 1700
@@ -2086,125 +2086,141 @@ function lozano2025(
 
         f = Figure(size=(1700, 670),)
 
-        ######################################################################
-        # Gas efficiency per free-fall evolution, from t= 0.2 Gyr to 13.8 Gyr
-        ######################################################################
+        t_limit = 0.2u"Gyr"
+
+        # Only consider gas within a sphere of r = r1
+        extra_filter = dd -> GalaxyInspector.filterWithinSphere(dd, (0.0u"kpc", r1), :zero)
+
+        simulations = [Au6_MOL_path, Au6_BLT_path, Au6_STD_path]
+        colors = [Makie.wong_colors()[1], Makie.wong_colors()[2], Makie.wong_colors()[3]]
+        labels = [Au6_MOL_label, Au6_BLT_label, Au6_STD_label]
+
+        n_plot_params = GalaxyInspector.plotParams(:gas_number_density)
+        Z_plot_params = GalaxyInspector.plotParams(:gas_metallicity)
+        ϵff_plot_params = GalaxyInspector.plotParams(:gas_eff)
 
         filter_function, translation, rotation, request = GalaxyInspector.selectFilter(
             :subhalo,
-            GalaxyInspector.plotParams(:gas_eff).request,
+            GalaxyInspector.mergeRequests(
+                n_plot_params.request,
+                Z_plot_params.request,
+                ϵff_plot_params.request,
+            ),
         )
 
-        extra_filter = dd->GalaxyInspector.filterWithinSphere(dd, (0.0u"kpc", 40.0u"kpc"), :zero)
-
-        initial_snap = GalaxyInspector.findClosestSnapshot(Au6_MOL_path, 0.2u"Gyr")
-
-        slice = initial_snap:Au6_MOL_z0_snap
-
-        iterator = zip(
-            [Au6_MOL_path, Au6_BLT_path, Au6_STD_path],
-            [Makie.wong_colors()[1], Makie.wong_colors()[2], Makie.wong_colors()[3]],
-            [Au6_MOL_label, Au6_BLT_label, Au6_STD_label],
-        )
+        #########################################################################
+        # Gas efficiency per free-fall vs time (from t_limit up to t = 13.8 Gyr)
+        #########################################################################
 
         ax_01 = CairoMakie.Axis(
             f[1, 1],
-            xlabel = L"t \,\, [\mathrm{Gyr}]",
-            ylabel = L"\log_{10} \, \epsilon_\mathrm{ff}^\mathrm{gas}",
+            xlabel=L"t \,\, [\mathrm{Gyr}]",
+            ylabel=L"\log_{10} \, \epsilon_\mathrm{ff}^\mathrm{gas}",
             xticks=0:2:14,
             yticks=-3.0:0.5:-0.5,
-            limits=(nothing, nothing, -3.1, -0.4),
+            limits=(nothing, nothing, -3.2, -0.4),
         )
 
-        @inbounds for (simulation, color, label) in iterator
+        # Start at `t_limit`
+        initial_snap = GalaxyInspector.findClosestSnapshot(Au6_MOL_path, t_limit)
 
-            ys_median = Vector{Float64}(undef, length(slice))
-            ys_mad    = Vector{Float64}(undef, length(slice))
-            times     = Vector{Float64}(undef, length(slice))
+        # Snapshot range
+        slice = initial_snap:Au6_MOL_z0_snap
 
-            @inbounds for (i, snap_n) in pairs(slice)
+        #####################################################################################
+        # INFO FILE - Gas efficiency per free-fall vs time (from t_limit up to t = 13.8 Gyr)
+        #####################################################################################
+
+        if logging
+            println(log_file, "\n", "#"^100)
+            println(
+                log_file,
+                "# INFO FILE - Gas efficiency per free-fall vs time (from t_limit up to t = 13.8 Gyr)",
+            )
+            println(log_file, "#"^100, "\n")
+        end
+
+        time_steps = range(1.0u"Gyr", 14.0u"Gyr"; step=1.0u"Gyr")
+
+        # Indexes of snapshot (relative to the `slice` list) to be printed in the INFO FILE
+        snap_idxs = GalaxyInspector.findClosestSnapshot.(
+            Au6_MOL_path,
+            time_steps,
+        ) .- initial_snap .+ 1
+
+        for (simulation, color, label) in zip(simulations, colors, labels)
+
+            # Median of ϵff (50th percentile)
+            ys = Vector{Float64}(undef, length(slice))
+            # ϵff 25th percentile
+            ys_low = Vector{Float64}(undef, length(slice))
+            # ϵff 75th percentile
+            ys_high = Vector{Float64}(undef, length(slice))
+
+            times = Vector{Float64}(undef, length(slice))
+
+            for (i, snap_n) in pairs(slice)
 
                 data_dict = makeDataDict(simulation, snap_n, request)
 
+                # Filter and transform the values
                 GalaxyInspector.filterData!(data_dict; filter_function)
                 GalaxyInspector.translateData!(data_dict, translation)
                 GalaxyInspector.rotateData!(data_dict, rotation)
                 GalaxyInspector.filterData!(data_dict; filter_function=extra_filter)
 
-                log10_ϵffs = filter(
-                    log10_ϵff -> !isnan(log10_ϵff) && !isinf(log10_ϵff),
-                    log10.(GalaxyInspector.scatterQty(data_dict, :gas_eff)),
-                )
+                ϵffs = GalaxyInspector.scatterQty(data_dict, :gas_eff)
 
-                ys_median[i] = median(log10_ϵffs)
-                ys_mad[i]    = mad(log10_ϵffs)
-                times[i]     = ustrip(u"Gyr", data_dict[:snap_data].physical_time)
+                # Ignore the ϵffs that are zero
+                filter!(!iszero, ϵffs)
+
+                ys[i] = median(ϵffs)
+                ys_low[i] = quantile(ϵffs, 0.25)
+                ys_high[i] = quantile(ϵffs, 0.75)
+                times[i] = ustrip(u"Gyr", data_dict[:snap_data].physical_time)
 
             end
 
-            _, ϵffs = GalaxyInspector.smoothWindow(times, ys_median, 40)
-            times, ϵffs_mad = GalaxyInspector.smoothWindow(times, ys_mad, 40)
+            # Print to the INFO file
+            println(info_file, "Simulation: $(basename(simulation))\n\n")
+
+            for idx in snap_idxs
+                println(info_file, "t = $(round(times[idx]; sigdigits=3)) Gyr\n")
+                println(info_file, "\tQuantile 50%: $(round(ys[idx] * 100; sigdigits=3))%\n")
+                println(info_file, "\tQuantile 25%: $(round(ys_low[idx] * 100; sigdigits=3))%\n")
+                println(info_file, "\tQuantile 75%: $(round(ys_high[idx] * 100; sigdigits=3))%\n\n")
+            end
+
+            # Go a to a log scale for the y axis
+            ys = log10.(ys)
+            ys_low = log10.(ys_low)
+            ys_high = log10.(ys_high)
+
+            # Smooth the values
+            _, ϵffs = GalaxyInspector.smoothWindow(times, ys, 40)
+            _, ϵffs_low = GalaxyInspector.smoothWindow(times, ys_low, 40)
+            times, ϵffs_high = GalaxyInspector.smoothWindow(times, ys_high, 40)
 
             lines!(ax_01, times, ϵffs; linewidth=3, color, label)
-            band!(ax_01, times, ϵffs .- ϵffs_mad, ϵffs .+ ϵffs_mad; color)
+            band!(ax_01, times, ϵffs_low, ϵffs_high; color)
 
         end
 
+        println(info_file, "#"^100, "\n")
+
         axislegend(ax_01, position=:lt, framevisible=false, nbanks=1)
-
-        ###################################################################################
-        # Gas efficiency per free-fall correlation with number density and gas metallicity
-        ###################################################################################
-
-        x1_plot_params = GalaxyInspector.plotParams(:gas_number_density)
-        x2_plot_params = GalaxyInspector.plotParams(:gas_metallicity)
-        y_plot_params = GalaxyInspector.plotParams(:gas_eff)
-
-        filter_function, translation, rotation, request = GalaxyInspector.selectFilter(
-            :subhalo,
-            GalaxyInspector.mergeRequests(
-                x1_plot_params.request,
-                x2_plot_params.request,
-                y_plot_params.request,
-            ),
-        )
-
-        da_ff = dd->GalaxyInspector.filterWithinSphere(dd, (0.0u"kpc", 40.0u"kpc"), :zero)
 
         #################################################
         # Gas efficiency per free-fall vs number density
         #################################################
 
-        temp_folder = joinpath(figures_path, "comparison/_eff_vs_number_density")
-
-        plotSnapshot(
-            [Au6_MOL_path, Au6_BLT_path, Au6_STD_path],
-            request,
-            [scatter!];
-            pf_kwargs=[(;)],
-            output_path=temp_folder,
-            base_filename="eff_vs_number_density",
-            slice=Au6_MOL_z0_snap,
-            filter_function,
-            da_functions=[GalaxyInspector.daScatterGalaxy],
-            da_args=[(:gas_number_density, :gas_eff)],
-            da_kwargs=[(; x_log=x1_plot_params.unit, y_log=y_plot_params.unit, filter_function=da_ff)],
-            transform_box=true,
-            translation,
-            rotation,
-            save_figures=false,
-            backup_results=true,
-        )
-
-        jld2_path = joinpath(temp_folder, "eff_vs_number_density.jld2")
-
         xlabel = LaTeXString(
             replace(
                 L"$\log_{10} \, $auto_label",
                 "auto_label" => GalaxyInspector.getLabel(
-                    x1_plot_params.var_name,
-                    x1_plot_params.exp_factor,
-                    x1_plot_params.unit,
+                    n_plot_params.var_name,
+                    n_plot_params.exp_factor,
+                    n_plot_params.unit,
                 ),
             ),
         )
@@ -2214,8 +2230,33 @@ function lozano2025(
             xlabel,
             ylabelvisible=false,
             yticklabelsvisible=false,
-            limits=(nothing, nothing, -3.1, -0.4),
+            limits=(nothing, nothing, -3.2, -0.4),
         )
+
+        temp_folder = joinpath(figures_path, "comparison/_eff_vs_number_density")
+
+        plotSnapshot(
+            simulations,
+            request,
+            [scatter!];
+            pf_kwargs=[(;)],
+            output_path=temp_folder,
+            base_filename="eff_vs_number_density",
+            slice=Au6_MOL_z0_snap,
+            filter_function,
+            da_functions=[GalaxyInspector.daScatterGalaxy],
+            da_args=[(:gas_number_density, :gas_eff)],
+            da_kwargs=[(; filter_function=extra_filter)],
+            transform_box=true,
+            translation,
+            rotation,
+            x_unit=n_plot_params.unit,
+            y_unit=ϵff_plot_params.unit,
+            save_figures=false,
+            backup_results=true,
+        )
+
+        jld2_path = joinpath(temp_folder, "eff_vs_number_density.jld2")
 
         jldopen(jld2_path, "r") do jld2_file
 
@@ -2229,62 +2270,86 @@ function lozano2025(
             # Au6_MOL
             ##########
 
-            grid = GalaxyInspector.LinearGrid(minimum(n_Au6_MOL), maximum(n_Au6_MOL), 100)
+            # Remove point where n or ϵff are zero
+            zero_filter = (x, y) -> iszero(x) || iszero(y)
+            delete_idxs = zero_filter.(n_Au6_MOL, ϵ_Au6_MOL)
+            deleteat!(n_Au6_MOL, delete_idxs)
+            deleteat!(ϵ_Au6_MOL, delete_idxs)
 
-            binned_ϵs = GalaxyInspector.listHistogram1D(n_Au6_MOL, ϵ_Au6_MOL, grid)
+            # Set up a logarithmic grid for the x axis
+            grid = GalaxyInspector.LinearGrid(minimum(n_Au6_MOL), maximum(n_Au6_MOL), 50; log=true)
 
-            xs_Au6_MOL      = grid.grid
-            ys_Au6_MOL      = Vector{Float64}(undef, length(grid.grid))
-            ys_low_Au6_MOL  = Vector{Float64}(undef, length(grid.grid))
+            binned_ϵffs = GalaxyInspector.listHistogram1D(n_Au6_MOL, ϵ_Au6_MOL, grid)
+
+            # Gas number density
+            xs_Au6_MOL = grid.grid
+            # Median of ϵff (50th percentile)
+            ys_Au6_MOL = Vector{Float64}(undef, length(grid.grid))
+            # ϵff 25th percentile
+            ys_low_Au6_MOL = Vector{Float64}(undef, length(grid.grid))
+            # ϵff 75th percentile
             ys_high_Au6_MOL = Vector{Float64}(undef, length(grid.grid))
 
-            @inbounds for i in eachindex(binned_ϵs)
+            for i in eachindex(binned_ϵffs)
 
-                ys_Au6_MOL[i]      = median(binned_ϵs[i])
-                ys_low_Au6_MOL[i]  = ys_Au6_MOL[i] - mad(binned_ϵs[i])
-                ys_high_Au6_MOL[i] = ys_Au6_MOL[i] + mad(binned_ϵs[i])
+                ys_Au6_MOL[i] = median(binned_ϵffs[i])
+                ys_low_Au6_MOL[i] = quantile(binned_ϵffs[i], 0.25)
+                ys_high_Au6_MOL[i] = quantile(binned_ϵffs[i], 0.75)
 
             end
 
             lines!(
                 ax_02,
-                xs_Au6_MOL,
-                ys_Au6_MOL;
+                log10.(xs_Au6_MOL),
+                log10.(ys_Au6_MOL);
                 linestyle=:solid,
-                color=Makie.wong_colors()[1],
+                color=colors[1],
                 linewidth=3,
             )
 
             band!(
                 ax_02,
-                xs_Au6_MOL,
-                ys_low_Au6_MOL,
-                ys_high_Au6_MOL;
-                color=Makie.wong_colors()[1],
+                log10.(xs_Au6_MOL),
+                log10.(ys_low_Au6_MOL),
+                log10.(ys_high_Au6_MOL);
+                color=colors[1],
             )
 
             ######################
             # Au6_BLT and AU6_STD
             ######################
 
+            # Remove point where n or ϵff are zero
+            zero_filter = (x, y) -> iszero(x) || iszero(y)
+            delete_idxs = zero_filter.(n_Au6_BLT, ϵ_Au6_BLT)
+            deleteat!(n_Au6_BLT, delete_idxs)
+            deleteat!(ϵ_Au6_BLT, delete_idxs)
+
+            # Remove point where n or ϵff are zero
+            zero_filter = (x, y) -> iszero(x) || iszero(y)
+            delete_idxs = zero_filter.(n_Au6_STD, ϵ_Au6_STD)
+            deleteat!(n_Au6_STD, delete_idxs)
+            deleteat!(ϵ_Au6_STD, delete_idxs)
+
+            # The correlation between n and ϵff is so strong that there is no need for smoothing
             idx_Au6_BLT = sortperm(n_Au6_BLT)
             idx_Au6_STD = sortperm(n_Au6_STD)
 
             lines!(
                 ax_02,
-                n_Au6_BLT[idx_Au6_BLT],
-                ϵ_Au6_BLT[idx_Au6_BLT];
+                log10.(n_Au6_BLT[idx_Au6_BLT]),
+                log10.(ϵ_Au6_BLT[idx_Au6_BLT]);
                 linestyle=:solid,
-                color=Makie.wong_colors()[2],
+                color=colors[2],
                 linewidth=3,
             )
 
             lines!(
                 ax_02,
-                n_Au6_STD[idx_Au6_STD],
-                ϵ_Au6_STD[idx_Au6_STD];
+                log10.(n_Au6_STD[idx_Au6_STD]),
+                log10.(ϵ_Au6_STD[idx_Au6_STD]);
                 linestyle=:solid,
-                color=Makie.wong_colors()[3],
+                color=colors[3],
                 linewidth=3,
             )
 
@@ -2296,36 +2361,13 @@ function lozano2025(
         # Gas efficiency per free-fall vs gas metallicity
         ##################################################
 
-        temp_folder = joinpath(figures_path, "comparison/_eff_vs_Z")
-
-        plotSnapshot(
-            [Au6_MOL_path, Au6_BLT_path, Au6_STD_path],
-            request,
-            [scatter!];
-            pf_kwargs=[(;)],
-            output_path=temp_folder,
-            base_filename="eff_vs_Z",
-            slice=Au6_MOL_z0_snap,
-            filter_function,
-            da_functions=[GalaxyInspector.daScatterGalaxy],
-            da_args=[(:gas_metallicity, :gas_eff)],
-            da_kwargs=[(; x_log=x2_plot_params.unit, y_log=y_plot_params.unit, filter_function=da_ff)],
-            transform_box=true,
-            translation,
-            rotation,
-            save_figures=false,
-            backup_results=true,
-        )
-
-        jld2_path = joinpath(temp_folder, "eff_vs_Z.jld2")
-
         xlabel = LaTeXString(
             replace(
                 L"$\log_{10} \, $auto_label",
                 "auto_label" => GalaxyInspector.getLabel(
-                    x2_plot_params.var_name,
-                    x2_plot_params.exp_factor,
-                    x2_plot_params.unit,
+                    Z_plot_params.var_name,
+                    Z_plot_params.exp_factor,
+                    Z_plot_params.unit,
                 ),
             ),
         )
@@ -2335,127 +2377,94 @@ function lozano2025(
             xlabel,
             ylabelvisible=false,
             yticklabelsvisible=false,
-            limits=(nothing, nothing, -3.1, -0.4),
+            limits=(nothing, nothing, -3.2, -0.4),
         )
 
-        jldopen(jld2_path, "r") do jld2_file
+        temp_folder = joinpath(figures_path, "comparison/_eff_vs_Z")
 
-            address = first(keys(jld2_file))
+        for (simulation, color, slice) in zip(simulations, colors, z0_snaps)
 
-            n_Au6_MOL, ϵ_Au6_MOL = jld2_file[address]["simulation_001"]
-            n_Au6_BLT, ϵ_Au6_BLT = jld2_file[address]["simulation_002"]
-            n_Au6_STD, ϵ_Au6_STD = jld2_file[address]["simulation_003"]
+            plotSnapshot(
+                [simulation],
+                request,
+                [scatter!];
+                pf_kwargs=[(;)],
+                output_path=temp_folder,
+                base_filename="eff_vs_Z",
+                slice,
+                filter_function,
+                da_functions=[GalaxyInspector.daScatterGalaxy],
+                da_args=[(:gas_metallicity, :gas_eff)],
+                da_kwargs=[(; filter_function=extra_filter)],
+                transform_box=true,
+                translation,
+                rotation,
+                x_unit=Z_plot_params.unit,
+                y_unit=ϵff_plot_params.unit,
+                save_figures=false,
+                backup_results=true,
+            )
 
-            ##########
-            # Au6_MOL
-            ##########
+            jld2_path = joinpath(temp_folder, "eff_vs_Z.jld2")
 
-            grid = GalaxyInspector.LinearGrid(minimum(n_Au6_MOL), maximum(n_Au6_MOL), 100)
-            binned_ϵs = GalaxyInspector.listHistogram1D(n_Au6_MOL, ϵ_Au6_MOL, grid)
+            jldopen(jld2_path, "r") do jld2_file
 
-            xs_Au6_MOL      = grid.grid
-            ys_Au6_MOL      = Vector{Float64}(undef, length(grid.grid))
-            ys_low_Au6_MOL  = Vector{Float64}(undef, length(grid.grid))
-            ys_high_Au6_MOL = Vector{Float64}(undef, length(grid.grid))
+                address = first(keys(jld2_file))
 
-            @inbounds for i in eachindex(binned_ϵs)
+                Z, ϵff = jld2_file[address]["simulation_001"]
 
-                ys_Au6_MOL[i]      = median(binned_ϵs[i])
-                ys_low_Au6_MOL[i]  = ys_Au6_MOL[i] - mad(binned_ϵs[i])
-                ys_high_Au6_MOL[i] = ys_Au6_MOL[i] + mad(binned_ϵs[i])
+                # Remove point where Z or ϵff are zero
+                zero_filter = (x, y) -> iszero(x) || iszero(y)
+                delete_idxs = zero_filter.(Z, ϵff)
+                deleteat!(Z, delete_idxs)
+                deleteat!(ϵff, delete_idxs)
+
+                ##########
+                # Au6_MOL
+                ##########
+
+                # Set up a logarithmic grid for the x axis
+                grid = GalaxyInspector.LinearGrid(minimum(Z), maximum(Z), 50)
+
+                binned_ϵffs = GalaxyInspector.listHistogram1D(Z, ϵff, grid)
+
+                # Gas metallicity
+                xs = grid.grid
+                # Median of ϵff (50th percentile)
+                ys = Vector{Float64}(undef, length(grid.grid))
+                # ϵff 25th percentile
+                ys_low = Vector{Float64}(undef, length(grid.grid))
+                # ϵff 75th percentile
+                ys_high = Vector{Float64}(undef, length(grid.grid))
+
+                for i in eachindex(binned_ϵffs)
+
+                    ys[i] = median(binned_ϵffs[i])
+                    ys_low[i] = quantile(binned_ϵffs[i], 0.25)
+                    ys_high[i] = quantile(binned_ϵffs[i], 0.75)
+
+                end
+
+                lines!(
+                    ax_03,
+                    log10.(xs),
+                    log10.(ys);
+                    linestyle=:solid,
+                    color,
+                    linewidth=3,
+                )
+
+                band!(
+                    ax_03,
+                    log10.(xs),
+                    log10.(ys_low),
+                    log10.(ys_high);
+                    color,
+                )
 
             end
 
-            lines!(
-                ax_03,
-                xs_Au6_MOL,
-                ys_Au6_MOL;
-                linestyle=:solid,
-                color=Makie.wong_colors()[1],
-                linewidth=3,
-            )
-
-            band!(
-                ax_03,
-                xs_Au6_MOL,
-                ys_low_Au6_MOL,
-                ys_high_Au6_MOL;
-                color=Makie.wong_colors()[1],
-            )
-
-            ##########
-            # Au6_BLT
-            ##########
-
-            grid = GalaxyInspector.LinearGrid(minimum(n_Au6_BLT), maximum(n_Au6_BLT), 100)
-            binned_ϵs = GalaxyInspector.listHistogram1D(n_Au6_BLT, ϵ_Au6_BLT, grid)
-
-            xs_Au6_BLT      = grid.grid
-            ys_Au6_BLT      = Vector{Float64}(undef, length(grid.grid))
-            ys_low_Au6_BLT  = Vector{Float64}(undef, length(grid.grid))
-            ys_high_Au6_BLT = Vector{Float64}(undef, length(grid.grid))
-
-            @inbounds for i in eachindex(binned_ϵs)
-
-                ys_Au6_BLT[i]      = median(binned_ϵs[i])
-                ys_low_Au6_BLT[i]  = ys_Au6_BLT[i] - mad(binned_ϵs[i])
-                ys_high_Au6_BLT[i] = ys_Au6_BLT[i] + mad(binned_ϵs[i])
-
-            end
-
-            lines!(
-                ax_03,
-                xs_Au6_BLT,
-                ys_Au6_BLT;
-                linestyle=:solid,
-                color=Makie.wong_colors()[2],
-                linewidth=3,
-            )
-
-            band!(
-                ax_03,
-                xs_Au6_BLT,
-                ys_low_Au6_BLT,
-                ys_high_Au6_BLT;
-                color=Makie.wong_colors()[2],
-            )
-
-            ##########
-            # Au6_STD
-            ##########
-
-            grid = GalaxyInspector.LinearGrid(minimum(n_Au6_STD), maximum(n_Au6_STD), 100)
-            binned_ϵs = GalaxyInspector.listHistogram1D(n_Au6_STD, ϵ_Au6_STD, grid)
-
-            xs_Au6_STD      = grid.grid
-            ys_Au6_STD      = Vector{Float64}(undef, length(grid.grid))
-            ys_low_Au6_STD  = Vector{Float64}(undef, length(grid.grid))
-            ys_high_Au6_STD = Vector{Float64}(undef, length(grid.grid))
-
-            @inbounds for i in eachindex(binned_ϵs)
-
-                ys_Au6_STD[i]      = median(binned_ϵs[i])
-                ys_low_Au6_STD[i]  = ys_Au6_STD[i] - mad(binned_ϵs[i])
-                ys_high_Au6_STD[i] = ys_Au6_STD[i] + mad(binned_ϵs[i])
-
-            end
-
-            lines!(
-                ax_03,
-                xs_Au6_STD,
-                ys_Au6_STD;
-                linestyle=:solid,
-                color=Makie.wong_colors()[3],
-                linewidth=3,
-            )
-
-            band!(
-                ax_03,
-                xs_Au6_STD,
-                ys_low_Au6_STD,
-                ys_high_Au6_STD;
-                color=Makie.wong_colors()[3],
-            )
+            rm(jld2_path; recursive=true)
 
         end
 
@@ -2465,167 +2474,167 @@ function lozano2025(
 
     end
 
-    ################################################################################################
-    # Comparison between different resolutions
-    ################################################################################################
+    # ################################################################################################
+    # # Comparison between different resolutions
+    # ################################################################################################
 
-    if logging
-        println(log_file, "\n", "#"^100)
-        println(
-            log_file,
-            "# Comparison between different resolutions",
-        )
-        println(log_file, "#"^100, "\n")
-    end
+    # if logging
+    #     println(log_file, "\n", "#"^100)
+    #     println(
+    #         log_file,
+    #         "# Comparison between different resolutions",
+    #     )
+    #     println(log_file, "#"^100, "\n")
+    # end
 
-    ff = dd -> GalaxyInspector.filterWithinSphere(dd, (0.0u"kpc", r1), :zero)
+    # ff = dd -> GalaxyInspector.filterWithinSphere(dd, (0.0u"kpc", r1), :zero)
 
-    temp_folder = joinpath(figures_path, "comparison/_resolution")
+    # temp_folder = joinpath(figures_path, "comparison/_resolution")
 
-    timeSeries(
-        [Au6_MOL_path, Au6_MOL_LR_path],
-        :physical_time,
-        :sfr;
-        output_path=temp_folder,
-        filter_mode=:subhalo,
-        extra_filter=ff,
-        sim_labels=[Au6_MOL_label, Au6_MOL_LR_label],
-        backup_results=true,
-    )
+    # timeSeries(
+    #     [Au6_MOL_path, Au6_MOL_LR_path],
+    #     :physical_time,
+    #     :sfr;
+    #     output_path=temp_folder,
+    #     filter_mode=:subhalo,
+    #     extra_filter=ff,
+    #     sim_labels=[Au6_MOL_label, Au6_MOL_LR_label],
+    #     backup_results=true,
+    # )
 
-    timeSeries(
-        [Au6_MOL_path, Au6_MOL_LR_path],
-        :physical_time,
-        :stellar_mass;
-        output_path=temp_folder,
-        filter_mode=:subhalo,
-        extra_filter=ff,
-        sim_labels=nothing,
-        backup_results=true,
-    )
+    # timeSeries(
+    #     [Au6_MOL_path, Au6_MOL_LR_path],
+    #     :physical_time,
+    #     :stellar_mass;
+    #     output_path=temp_folder,
+    #     filter_mode=:subhalo,
+    #     extra_filter=ff,
+    #     sim_labels=nothing,
+    #     backup_results=true,
+    # )
 
-    timeSeries(
-        [Au6_MOL_path, Au6_MOL_LR_path],
-        :physical_time,
-        :stellar_metallicity;
-        output_path=temp_folder,
-        filter_mode=:subhalo,
-        extra_filter=ff,
-        sim_labels=nothing,
-        backup_results=true,
-    )
+    # timeSeries(
+    #     [Au6_MOL_path, Au6_MOL_LR_path],
+    #     :physical_time,
+    #     :stellar_metallicity;
+    #     output_path=temp_folder,
+    #     filter_mode=:subhalo,
+    #     extra_filter=ff,
+    #     sim_labels=nothing,
+    #     backup_results=true,
+    # )
 
-    timeSeries(
-        [Au6_MOL_path, Au6_MOL_LR_path],
-        :physical_time,
-        :ionized_mass;
-        output_path=temp_folder,
-        filter_mode=:subhalo,
-        extra_filter=ff,
-        sim_labels=nothing,
-        backup_results=true,
-    )
+    # timeSeries(
+    #     [Au6_MOL_path, Au6_MOL_LR_path],
+    #     :physical_time,
+    #     :ionized_mass;
+    #     output_path=temp_folder,
+    #     filter_mode=:subhalo,
+    #     extra_filter=ff,
+    #     sim_labels=nothing,
+    #     backup_results=true,
+    # )
 
-    timeSeries(
-        [Au6_MOL_path, Au6_MOL_LR_path],
-        :physical_time,
-        :atomic_mass;
-        output_path=temp_folder,
-        filter_mode=:subhalo,
-        extra_filter=ff,
-        sim_labels=nothing,
-        backup_results=true,
-    )
+    # timeSeries(
+    #     [Au6_MOL_path, Au6_MOL_LR_path],
+    #     :physical_time,
+    #     :atomic_mass;
+    #     output_path=temp_folder,
+    #     filter_mode=:subhalo,
+    #     extra_filter=ff,
+    #     sim_labels=nothing,
+    #     backup_results=true,
+    # )
 
-    timeSeries(
-        [Au6_MOL_path, Au6_MOL_LR_path],
-        :physical_time,
-        :molecular_mass;
-        output_path=temp_folder,
-        filter_mode=:subhalo,
-        extra_filter=ff,
-        sim_labels=nothing,
-        backup_results=true,
-    )
+    # timeSeries(
+    #     [Au6_MOL_path, Au6_MOL_LR_path],
+    #     :physical_time,
+    #     :molecular_mass;
+    #     output_path=temp_folder,
+    #     filter_mode=:subhalo,
+    #     extra_filter=ff,
+    #     sim_labels=nothing,
+    #     backup_results=true,
+    # )
 
-    jld2_names = [
-        "sfr_vs_physical_time",
-        "stellar_mass_vs_physical_time",
-        "stellar_metallicity_vs_physical_time",
-        "ionized_mass_vs_physical_time",
-        "atomic_mass_vs_physical_time",
-        "molecular_mass_vs_physical_time",
-    ]
+    # jld2_names = [
+    #     "sfr_vs_physical_time",
+    #     "stellar_mass_vs_physical_time",
+    #     "stellar_metallicity_vs_physical_time",
+    #     "ionized_mass_vs_physical_time",
+    #     "atomic_mass_vs_physical_time",
+    #     "molecular_mass_vs_physical_time",
+    # ]
 
-    y_labels = [
-        L"\mathrm{SFR \, [M_\odot \, yr^{-1}]}",
-        L"M_\star \, \mathrm{[10^{10} \, M_\odot]}",
-        L"Z_\star",
-        L"M_\mathrm{HII} \, \mathrm{[10^{10} \, M_\odot]}",
-        L"M_\mathrm{HI} \, \mathrm{[10^{10} \, M_\odot]}",
-        L"M_\mathrm{H_2} \, \mathrm{[10^{10} \, M_\odot]}",
-    ]
+    # y_labels = [
+    #     L"\mathrm{SFR \, [M_\odot \, yr^{-1}]}",
+    #     L"M_\star \, \mathrm{[10^{10} \, M_\odot]}",
+    #     L"Z_\star",
+    #     L"M_\mathrm{HII} \, \mathrm{[10^{10} \, M_\odot]}",
+    #     L"M_\mathrm{HI} \, \mathrm{[10^{10} \, M_\odot]}",
+    #     L"M_\mathrm{H_2} \, \mathrm{[10^{10} \, M_\odot]}",
+    # ]
 
-    n_cols = 3
-    t_limit = 3.0
+    # n_cols = 3
+    # t_limit = 3.0
 
-    with_theme(merge(theme_latexfonts(), GalaxyInspector.DEFAULT_THEME, Theme())) do
+    # with_theme(merge(theme_latexfonts(), GalaxyInspector.DEFAULT_THEME, Theme())) do
 
-        f = Figure(size=(1700, 1130),)
+    #     f = Figure(size=(1700, 1130),)
 
-        for idx in eachindex(jld2_names)
+    #     for idx in eachindex(jld2_names)
 
-            row = ceil(Int, idx / n_cols)
-            col = mod1(idx, n_cols)
+    #         row = ceil(Int, idx / n_cols)
+    #         col = mod1(idx, n_cols)
 
-            ax = CairoMakie.Axis(
-                f[row, col];
-                xlabel=L"t \, [\mathrm{Gyr}]",
-                ylabel=y_labels[idx],
-                yscale=log10,
-            )
+    #         ax = CairoMakie.Axis(
+    #             f[row, col];
+    #             xlabel=L"t \, [\mathrm{Gyr}]",
+    #             ylabel=y_labels[idx],
+    #             yscale=log10,
+    #         )
 
-            jldopen(joinpath(temp_folder, "$(jld2_names[idx]).jld2"), "r") do jld2_file
+    #         jldopen(joinpath(temp_folder, "$(jld2_names[idx]).jld2"), "r") do jld2_file
 
-                hr_data = jld2_file["$(jld2_names[idx])/simulation_001"]
-                lr_data = jld2_file["$(jld2_names[idx])/simulation_002"]
+    #             hr_data = jld2_file["$(jld2_names[idx])/simulation_001"]
+    #             lr_data = jld2_file["$(jld2_names[idx])/simulation_002"]
 
-                hr_t_idxs = map(x -> x > t_limit, hr_data[1])
-                lr_t_idxs = map(x -> x > t_limit, lr_data[1])
+    #             hr_t_idxs = map(x -> x > t_limit, hr_data[1])
+    #             lr_t_idxs = map(x -> x > t_limit, lr_data[1])
 
-                if row == 2 && col == 1
-                    label_hr = Au6_MOL_label
-                    label_lr = Au6_MOL_LR_label
-                else
-                    label_hr = nothing
-                    label_lr = nothing
-                end
+    #             if row == 2 && col == 1
+    #                 label_hr = Au6_MOL_label
+    #                 label_lr = Au6_MOL_LR_label
+    #             else
+    #                 label_hr = nothing
+    #                 label_lr = nothing
+    #             end
 
-                lines!(
-                    ax,
-                    lr_data[1][lr_t_idxs],
-                    lr_data[2][lr_t_idxs];
-                    color=Makie.wong_colors()[1],
-                    label=label_lr,
-                )
+    #             lines!(
+    #                 ax,
+    #                 lr_data[1][lr_t_idxs],
+    #                 lr_data[2][lr_t_idxs];
+    #                 color=Makie.wong_colors()[1],
+    #                 label=label_lr,
+    #             )
 
-                lines!(
-                    ax,
-                    hr_data[1][hr_t_idxs],
-                    hr_data[2][hr_t_idxs];
-                    color=Makie.wong_colors()[2],
-                    label=label_hr,
-                )
+    #             lines!(
+    #                 ax,
+    #                 hr_data[1][hr_t_idxs],
+    #                 hr_data[2][hr_t_idxs];
+    #                 color=Makie.wong_colors()[2],
+    #                 label=label_hr,
+    #             )
 
-                axislegend(ax, position=:rb, framevisible=false, nbanks=1)
+    #             axislegend(ax, position=:rb, framevisible=false, nbanks=1)
 
-            end
+    #         end
 
-        end
+    #     end
 
-        Makie.save(joinpath(figures_path, "comparison/resolution_comparison.png"), f)
+    #     Makie.save(joinpath(figures_path, "comparison/resolution_comparison.png"), f)
 
-    end
+    # end
 
     ################################################################################################
     # INFO FILE
@@ -2825,7 +2834,7 @@ function lozano2025(
 
     idx_within = GalaxyInspector.filterWithinSphere(
         data_dict,
-        (0.0u"kpc", 40.0u"kpc"),
+        (0.0u"kpc", r1),
         :zero,
     )[:gas]
 
@@ -2898,54 +2907,54 @@ function lozano2025(
 
     println(info_file, "#"^100, "\n")
 
-    ################################
-    # INFO FILE - Resolution ratios
-    ################################
+    # ################################
+    # # INFO FILE - Resolution ratios
+    # ################################
 
-    if logging
-        println(log_file, "\n", "#"^100)
-        println(
-            log_file,
-            "# INFO FILE - Resolution ratios",
-        )
-        println(log_file, "#"^100, "\n")
-    end
+    # if logging
+    #     println(log_file, "\n", "#"^100)
+    #     println(
+    #         log_file,
+    #         "# INFO FILE - Resolution ratios",
+    #     )
+    #     println(log_file, "#"^100, "\n")
+    # end
 
-    paths = joinpath.(temp_folder, jld2_names .* ".jld2")
+    # paths = joinpath.(temp_folder, jld2_names .* ".jld2")
 
-    component_labels = ["SFR", "Stellar mass", "Stellar metallicity", "HII", "HI", "H2"]
+    # component_labels = ["SFR", "Stellar mass", "Stellar metallicity", "HII", "HI", "H2"]
 
-    println(
-        info_file,
-        "The maximum porcentual differences between Au6_MOL and Au6_MOL_LR are after 10Gyr:\n",
-    )
+    # println(
+    #     info_file,
+    #     "The maximum porcentual differences between Au6_MOL and Au6_MOL_LR are after 10Gyr:\n",
+    # )
 
-    for (path, label) in zip(paths, component_labels)
+    # for (path, label) in zip(paths, component_labels)
 
-        jldopen(path, "r") do jld2_file
+    #     jldopen(path, "r") do jld2_file
 
-            x_Au6_MOL, y_Au6_MOL = jld2_file[first(keys(jld2_file))]["simulation_001"]
-            x_Au6_MOL_LR, y_Au6_MOL_LR = jld2_file[first(keys(jld2_file))]["simulation_002"]
+    #         x_Au6_MOL, y_Au6_MOL = jld2_file[first(keys(jld2_file))]["simulation_001"]
+    #         x_Au6_MOL_LR, y_Au6_MOL_LR = jld2_file[first(keys(jld2_file))]["simulation_002"]
 
-            idxs = map(t -> t < 10.0, x_Au6_MOL)
-            idxs_lr = map(t -> t < 10.0, x_Au6_MOL_LR)
+    #         idxs = map(t -> t < 10.0, x_Au6_MOL)
+    #         idxs_lr = map(t -> t < 10.0, x_Au6_MOL_LR)
 
-            deleteat!(y_Au6_MOL, idxs)
-            deleteat!(y_Au6_MOL_LR, idxs_lr)
+    #         deleteat!(y_Au6_MOL, idxs)
+    #         deleteat!(y_Au6_MOL_LR, idxs_lr)
 
-            deltas = @. abs(y_Au6_MOL - y_Au6_MOL_LR) / y_Au6_MOL
+    #         deltas = @. abs(y_Au6_MOL - y_Au6_MOL_LR) / y_Au6_MOL
 
-            max_diff = round(maximum(deltas) * 100; sigdigits=3)
+    #         max_diff = round(maximum(deltas) * 100; sigdigits=3)
 
-            println(info_file, "$(label): $(max_diff)%\n")
+    #         println(info_file, "$(label): $(max_diff)%\n")
 
-        end
+    #     end
 
-    end
+    # end
 
-    println(info_file, "#"^100, "\n")
+    # println(info_file, "#"^100, "\n")
 
-    rm(temp_folder; recursive=true)
+    # rm(temp_folder; recursive=true)
 
     ################################################################################################
     # Report files

@@ -631,7 +631,7 @@ function (@main)(ARGS)
     BASE_OUT_PATH = "./"
 
     # Simulation folder
-    SIMULATION_PATH = "F:/simulations/lozano_2025/Au6_MOL_test18"
+    SIMULATION_PATH = "F:/simulations/current/Au6_MOL_test28"
 
     # Characteristic radii
     R1 = 40.0u"kpc"
