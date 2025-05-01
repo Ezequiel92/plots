@@ -522,7 +522,7 @@ function basic_analysis(
         ),
         title="Stellar metallicity",
         colorbar=true,
-        colorrange=nothing,
+        colorrange=(-2.0, 0.1),
     )
 
     gasSFRMap(
@@ -589,14 +589,14 @@ function basic_analysis(
         theme=Theme(Legend=(padding=(10, 0, 0, 0),),),
     )
 
-    ##############
-    # Gas density
-    ##############
+    ##################
+    # Nuetral density
+    ##################
 
     kennicuttSchmidtLaw(
         [simulation_path],
         n_snapshots;
-        quantity=:gas_mass,
+        quantity=:neutral_mass,
         reduce_grid=:square,
         grid_size=30.0u"kpc",
         bin_size=1.5u"kpc",
@@ -604,7 +604,7 @@ function basic_analysis(
         measurements=true,
         measurement_type=:main,
         fit=true,
-        output_file=joinpath(figures_path, "total_gas_ks_law.png"),
+        output_file=joinpath(figures_path, "neutral_gas_ks_law.png"),
         filter_mode=:subhalo,
         sim_labels=[basename(simulation_path)],
         theme=Theme(Legend=(padding=(10, 0, 0, 20),),),
@@ -631,7 +631,7 @@ function (@main)(ARGS)
     BASE_OUT_PATH = "./"
 
     # Simulation folder
-    SIMULATION_PATH = "F:/simulations/current/Au6_MOL_test28"
+    SIMULATION_PATH = "F:/simulations/current/test_no_dust"
 
     # Characteristic radii
     R1 = 40.0u"kpc"
