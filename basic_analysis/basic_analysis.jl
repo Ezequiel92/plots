@@ -630,16 +630,20 @@ function (@main)(ARGS)
     # Output folder
     BASE_OUT_PATH = "./"
 
-    # Simulation folder
-    SIMULATION_PATH = "F:/simulations/current/test_no_dust"
+    for simulation in ["test_dust", "test_no_dust"]
 
-    # Characteristic radii
-    R1 = 40.0u"kpc"
-    R2 = 2.0u"kpc"
+        # Simulation folder
+        SIMULATION_PATH = "F:/simulations/current/$(simulation)/"
 
-    # Number of count to normalice the circularity histogram
-    NORM = 10000
+        # Characteristic radii
+        R1 = 40.0u"kpc"
+        R2 = 2.0u"kpc"
 
-    basic_analysis(SIMULATION_PATH, BASE_OUT_PATH, R1, R2, NORM, LOGGING)
+        # Number of count to normalice the circularity histogram
+        NORM = 10000
+
+        basic_analysis(SIMULATION_PATH, BASE_OUT_PATH, R1, R2, NORM, LOGGING)
+
+    end
 
 end
