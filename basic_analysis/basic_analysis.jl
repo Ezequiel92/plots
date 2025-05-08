@@ -633,7 +633,7 @@ function (@main)(ARGS)
     for simulation in ["test_dust", "test_no_dust"]
 
         # Simulation folder
-        SIMULATION_PATH = "F:/simulations/current/$(simulation)/"
+        SIMULATION_PATH = "F:/simulations/current/$(simulation)"
 
         # Characteristic radii
         R1 = 40.0u"kpc"
