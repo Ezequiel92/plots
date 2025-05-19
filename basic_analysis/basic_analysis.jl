@@ -522,7 +522,7 @@ function basic_analysis(
         ),
         title="Stellar metallicity",
         colorbar=true,
-        colorrange=(-2.0, 0.1),
+        colorrange=(-0.3, 0.1),
     )
 
     gasSFRMap(
@@ -630,7 +630,7 @@ function (@main)(ARGS)
     # Output folder
     BASE_OUT_PATH = "./"
 
-    for simulation in ["test_dust", "test_no_dust"]
+    for simulation in ["test_dust_02", "test_no_dust", "test_dust_volker"]
 
         # Simulation folder
         SIMULATION_PATH = "F:/simulations/current/$(simulation)"
