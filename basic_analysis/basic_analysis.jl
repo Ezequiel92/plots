@@ -50,6 +50,9 @@ function basic_analysis(
         throw(ArgumentError("basic_analysis: $(simulation_path) has no snapshots"))
     )
 
+    # Number label for the last snapshot
+    snap_str = lpad(string(n_snapshots - 1), 3, "0")
+
     # Create the necessary folders
     figures_path = mkpath(joinpath(base_out_path, "$(basename(simulation_path))_figures"))
     report_path = mkpath(joinpath(base_out_path, "$(basename(simulation_path))_reports"))
@@ -551,12 +554,12 @@ function basic_analysis(
         joinpath.(
             temp_folder,
             [
-                "$(basename(simulation_path))_gas_mass_xy_density_map_snap_127.png",
-                "$(basename(simulation_path))_stellar_mass_xy_density_map_snap_127.png",
-                "$(basename(simulation_path))_xy_gas_sfr_map_snap_127.png",
-                "$(basename(simulation_path))_xy_temperature_map_snap_127.png",
-                "$(basename(simulation_path))_gas_xy_metallicity_map_snap_127.png",
-                "$(basename(simulation_path))_stars_xy_metallicity_map_snap_127.png",
+                "$(basename(simulation_path))_gas_mass_xy_density_map_snap_$(snap_str).png",
+                "$(basename(simulation_path))_stellar_mass_xy_density_map_snap_$(snap_str).png",
+                "$(basename(simulation_path))_xy_gas_sfr_map_snap_$(snap_str).png",
+                "$(basename(simulation_path))_xy_temperature_map_snap_$(snap_str).png",
+                "$(basename(simulation_path))_gas_xy_metallicity_map_snap_$(snap_str).png",
+                "$(basename(simulation_path))_stars_xy_metallicity_map_snap_$(snap_str).png",
             ]
         );
         output_path=joinpath(figures_path, "all_maps.png"),
@@ -630,7 +633,7 @@ function (@main)(ARGS)
     # Output folder
     BASE_OUT_PATH = "./"
 
-    for simulation in ["test_dust_02", "test_no_dust", "test_dust_volker"]
+    for simulation in ["test_dust_03"]
 
         # Simulation folder
         SIMULATION_PATH = "F:/simulations/current/$(simulation)"
