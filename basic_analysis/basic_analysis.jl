@@ -30,7 +30,7 @@ using CSV,
     Unitful,
     UnitfulAstro
 
-push!(LOAD_PATH, "../../codes/GalaxyInspector/src/")
+push!(LOAD_PATH, "C:/Users/ezequiel/Desktop/GalaxyInspector-6242b9fbae8b9a1cabc1823f21322da0f9b51ca8/src/")
 using GalaxyInspector
 
 function basic_analysis(
@@ -633,7 +633,7 @@ function (@main)(ARGS)
     # Output folder
     BASE_OUT_PATH = "./"
 
-    for simulation in ["test_dust_03"]
+    for simulation in ["test_dust_02"]
 
         # Simulation folder
         SIMULATION_PATH = "F:/simulations/current/$(simulation)"
