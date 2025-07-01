@@ -129,6 +129,7 @@ Internal unit of length used in IllustrisTNG, equivalent to ``1.0  \\, \\mathrm{
 See the documentation [here](https://www.tng-project.org/data/docs/specifications/)
 """
 const ILLUSTRIS_L_UNIT = 3.085678e21u"cm"
+# const ILLUSTRIS_L_UNIT = 3.085678e24u"cm"
 
 """
 Internal unit of mass used in IllustrisTNG, equivalent to ``10^{10} \\, \\mathrm{M_\\odot}``.

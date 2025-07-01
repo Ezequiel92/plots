@@ -1547,7 +1547,7 @@ function daDensity2DProjection(
 
         # Print the density range
         @info(
-            "\nDensity range - log₁₀(ρ [$(m_unit * l_unit^-2)]) \
+            "\nDensity range - log₁₀(Σ [$(m_unit * l_unit^-2)]) \
             \n  Simulation: $(basename(filtered_dd[:sim_data].path)) \
             \n  Snapshot:   $(filtered_dd[:snap_data].global_index) \
             \n  Quantity:   $(quantity) \
