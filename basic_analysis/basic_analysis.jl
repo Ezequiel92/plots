@@ -40,10 +40,25 @@ function basic_analysis(
     r2::Unitful.Length,
     norm::Int,
     logging::Bool,
-    ge::Bool,
+    gas_evolution::Bool,
 )::Nothing
 
+    # Create the output folders
+    figures_path = mkpath(joinpath(base_out_path, "$(basename(simulation_path))_figures"))
+    report_path = mkpath(joinpath(base_out_path, "$(basename(simulation_path))_reports"))
+
+    # Activate logging
+    if logging
+        log_file = open(joinpath(report_path, "logs.txt"), "w+")
+        GalaxyInspector.setLogging!(logging; stream=log_file)
+    end
+
+    default_theme = merge(GalaxyInspector.DEFAULT_THEME, theme_latexfonts())
+
+    ############################
     # Select the last snapshot
+    ###########################
+
     n_snapshots = GalaxyInspector.countSnapshot(simulation_path)
 
     (
@@ -53,16 +68,6 @@ function basic_analysis(
 
     # Number label for the last snapshot
     snap_str = lpad(string(n_snapshots - 1), 3, "0")
-
-    # Create the output folders
-    figures_path = mkpath(joinpath(base_out_path, "$(basename(simulation_path))_figures"))
-    report_path = mkpath(joinpath(base_out_path, "$(basename(simulation_path))_reports"))
-
-    if logging
-        # Activate logging
-        log_file = open(joinpath(report_path, "logs.txt"), "w+")
-        GalaxyInspector.setLogging!(logging; stream=log_file)
-    end
 
     ###############
     # Report files
@@ -432,7 +437,7 @@ function basic_analysis(
 
     end
 
-    with_theme(merge(theme_latexfonts(), GalaxyInspector.DEFAULT_THEME)) do
+    with_theme(default_theme) do
 
         f = Figure(size=(x_size, y_size), figure_padding=(5, 10, 0, 0))
 
@@ -577,7 +582,7 @@ function basic_analysis(
 
     end
 
-    with_theme(merge(theme_latexfonts(), GalaxyInspector.DEFAULT_THEME)) do
+    with_theme(default_theme) do
 
         f = Figure(size=(x_size, y_size), figure_padding=(0, 0, 0, 0))
 
@@ -908,7 +913,7 @@ function basic_analysis(
         ),
     )
 
-    if ge
+    if gas_evolution
 
         #################################################################################
         # Evolution of the masses and of the fractions, for the different gas components
@@ -1011,7 +1016,7 @@ function basic_analysis(
         # Starts at ~200 Myr to ignore initial very low fractions
         initial_snap = GalaxyInspector.findClosestSnapshot(simulation_path, 0.2u"Gyr")
 
-        with_theme(merge(theme_latexfonts(), GalaxyInspector.DEFAULT_THEME)) do
+        with_theme(default_theme) do
 
             f = Figure(size=(880, 1200),)
 
@@ -1132,6 +1137,287 @@ function basic_analysis(
 
 end
 
+function comparison(
+    simulation_paths::Vector{String},
+    base_out_path::String,
+    r1::Unitful.Length,
+    logging::Bool,
+)
+
+    # Create the output folders
+    report_path = mkpath(joinpath(base_out_path, "comparison"))
+    figures_path = mkpath(joinpath(report_path, "figures"))
+
+    # Activate logging
+    if logging
+        log_file = open(joinpath(report_path, "logs.txt"), "w+")
+        GalaxyInspector.setLogging!(logging; stream=log_file)
+    end
+
+    temp_folder = joinpath(figures_path, "_mass_evolution")
+
+    # Select last snapshot
+    snaps = GalaxyInspector.findClosestSnapshot.(simulation_paths, 14.0u"Gyr")
+
+    # Starts at ~200 Myr to ignore initial very low fractions
+    initial_snaps = GalaxyInspector.findClosestSnapshot.(simulation_paths, 0.2u"Gyr")
+
+    sim_names = basename.(simulation_paths)
+    n_sims    = length(simulation_paths)
+
+    ################################################################################################
+    # Compute the evolution of the total mass of the different gas components and of the SFR
+    # (within a sphere of radius r1)
+    ################################################################################################
+
+    if logging
+        println(log_file, "#"^100)
+        println(
+            log_file,
+            "# Compute the evolution of the total mass of the different gas components and of the SFR",
+            "\n(within a sphere of radius r1)",
+        )
+        println(log_file, "#"^100, "\n")
+    end
+
+    quantities = [:ionized_mass, :atomic_mass, :molecular_mass]
+    n_panels   = length(quantities) + 1
+
+    x_plot_params = GalaxyInspector.plotParams(:physical_time)
+
+    for (simulation, z0_snap) in zip(simulation_paths, snaps)
+
+        for quantity in quantities
+
+            if logging
+                println(log_file, "#"^100)
+                println(
+                    log_file,
+                    "# Computing the evolution of $(quantity) for $(basename(simulation))",
+                )
+                println(log_file, "#"^100, "\n")
+            end
+
+            y_plot_params = GalaxyInspector.plotParams(quantity)
+
+            plotTimeSeries(
+                [simulation],
+                [lines!];
+                output_path=temp_folder,
+                filename="$(quantity)_$(basename(simulation))",
+                da_functions=[GalaxyInspector.daEvolution],
+                da_args=[(:physical_time, quantity)],
+                da_kwargs=[
+                    (;
+                        filter_mode=:subhalo,
+                        extra_filter=dd -> GalaxyInspector.filterWithinSphere(
+                            dd,
+                            (0.0u"kpc", r1),
+                            :zero,
+                        ),
+                        scaling=identity,
+                    ),
+                ],
+                x_unit=x_plot_params.unit,
+                y_unit=y_plot_params.unit,
+                x_exp_factor=x_plot_params.exp_factor,
+                y_exp_factor=y_plot_params.exp_factor,
+                save_figures=false,
+                backup_results=true,
+            )
+
+        end
+
+        y_plot_params = GalaxyInspector.plotParams(:sfr)
+
+        filter_function, translation, rotation, request = GalaxyInspector.selectFilter(
+            :subhalo,
+            y_plot_params.request,
+        )
+
+        if logging
+            println(log_file, "#"^100)
+            println(
+                log_file,
+                "# Computing the evolution of the SFR for $(basename(simulation))",
+            )
+            println(log_file, "#"^100, "\n")
+        end
+
+        plotSnapshot(
+            [simulation],
+            request,
+            [lines!];
+            output_path=temp_folder,
+            base_filename="sfr_$(basename(simulation))",
+            slice=z0_snap,
+            filter_function,
+            da_functions=[GalaxyInspector.daStellarHistory],
+            da_args=[()],
+            da_kwargs=[
+                (;
+                    quantity=:sfr,
+                    n_bins=80,
+                    filter_function=dd -> GalaxyInspector.filterWithinSphere(
+                        dd,
+                        (0.0u"kpc", r1),
+                        :zero,
+                    ),
+                ),
+            ],
+            transform_box=true,
+            translation,
+            rotation,
+            x_unit=x_plot_params.unit,
+            y_unit=y_plot_params.unit,
+            x_exp_factor=x_plot_params.exp_factor,
+            y_exp_factor=y_plot_params.exp_factor,
+            save_figures=false,
+            backup_results=true,
+        )
+
+    end
+
+    ################################################################################################
+    # Plot the evolution of the masses and of the SFR for the different gas components
+    # (within a sphere of radius r1)
+    ################################################################################################
+
+    jld2_paths = joinpath.(
+        temp_folder,
+        vcat(
+            ["sfr_$(label).jld2" for label in basename.(simulation_paths)],
+            ["ionized_mass_$(label).jld2" for label in basename.(simulation_paths)],
+            ["atomic_mass_$(label).jld2" for label in basename.(simulation_paths)],
+            ["molecular_mass_$(label).jld2" for label in basename.(simulation_paths)],
+        ),
+    )
+
+    xlabel = LaTeXString(
+        replace(
+            x_plot_params.axis_label,
+            "auto_label" => GalaxyInspector.getLabel(
+                x_plot_params.var_name,
+                x_plot_params.exp_factor,
+                x_plot_params.unit,
+            ),
+        ),
+    )
+
+    current_theme = merge(
+        Theme(palette=(linestyle=[:solid],),),
+        GalaxyInspector.DEFAULT_THEME,
+        theme_latexfonts(),
+    )
+
+    colors = current_theme[:palette][:color][]
+    y_lows = [exp10(-2.5), exp10(-2.5), exp10(-5.0)]
+
+    with_theme(current_theme) do
+
+        f = Figure(size=(880, 1840), figure_padding=(1, 15, 5, 20))
+
+        #########################
+        # Plot the SFR evolution
+        #########################
+
+        ylabel = LaTeXString(
+            replace(
+                GalaxyInspector.plotParams(:sfr).axis_label,
+                "auto_label" => GalaxyInspector.getLabel(
+                    GalaxyInspector.plotParams(:sfr).var_name,
+                    GalaxyInspector.plotParams(:sfr).exp_factor,
+                    GalaxyInspector.plotParams(:sfr).unit,
+                ),
+            ),
+        )
+
+        ax = CairoMakie.Axis(
+            f[1, 1];
+            xlabel,
+            ylabel,
+            aspect=AxisAspect(1.7),
+            yscale=log10,
+            xlabelvisible=false,
+            xticklabelsvisible=false,
+            xticks=0:2:14,
+            yticks=[exp10(-2.0), exp10(-1.0), exp10(0.0), exp10(1.0)],
+            limits=(nothing, nothing, exp10(-2.5), exp10(1.5)),
+        )
+
+        for (path, label, color) in zip(jld2_paths[1:n_sims], sim_names, colors)
+
+            jldopen(path, "r") do jld2_file
+
+                address = first(keys(jld2_file))
+
+                x, y = jld2_file[address]["simulation_001"]
+
+                lines!(ax, x, y; label, color)
+
+            end
+
+        end
+
+        axislegend(ax, position=:rb, framevisible=false, nbanks=1)
+
+        ##############################
+        # Plot the gas mass evolution
+        ##############################
+
+        for (i, (quantity, y_low)) in enumerate(zip(quantities, y_lows))
+
+            y_plot_params = GalaxyInspector.plotParams(quantity)
+
+            ylabel = LaTeXString(
+                replace(
+                    y_plot_params.axis_label,
+                    "auto_label" => GalaxyInspector.getLabel(
+                        y_plot_params.var_name,
+                        y_plot_params.exp_factor,
+                        y_plot_params.unit,
+                    ),
+                ),
+            )
+
+            ax = CairoMakie.Axis(
+                f[i+1, 1];
+                xlabel,
+                ylabel,
+                aspect=AxisAspect(1.7),
+                yscale=log10,
+                xlabelvisible=i+1 == n_panels,
+                xticklabelsvisible=i+1 == n_panels,
+                xticks=0:2:14,
+                limits=(nothing, nothing, y_low, nothing),
+            )
+
+            paths = jld2_paths[(n_sims*i+1):(n_sims*i+n_sims)]
+
+            for (path, label, color, initial_snap) in zip(paths, sim_names, colors, initial_snaps)
+
+                jldopen(path, "r") do jld2_file
+
+                    address = first(keys(jld2_file))
+
+                    x, y = jld2_file[address]["simulation_001"]
+
+                    lines!(ax, x[initial_snap:end], y[initial_snap:end]; label, color)
+
+                end
+
+            end
+
+        end
+
+        Makie.save(joinpath(figures_path, "mass_evolution.png"), f)
+
+    end
+
+    rm(temp_folder; recursive=true)
+
+end
+
 function (@main)(ARGS)
 
     # If logging into a file will be enable
@@ -1148,15 +1434,21 @@ function (@main)(ARGS)
     NORM = 10000
 
     # If the evolution of the masses and of the fractions will be done (slow to run)
-    GE = false
+    GAS_EVOLUTION = true
 
-    for simulation in [
-        "F:/simulations/current/test_dust_04",
-        "F:/simulations/current/test_dust_blitz_02",
+    SIMULATIONS = [
+        # "F:/simulations/current/test_dust_blitz_02",
+        # "F:/simulations/current/test_dust_04",
+        "F:/simulations/current/test_dust_05",
+        "F:/simulations/current/test_dust_06",
     ]
 
-        basic_analysis(simulation, BASE_OUT_PATH, R1, R2, NORM, LOGGING, GE)
-
+    if length(SIMULATIONS) > 1
+        comparison(SIMULATIONS, BASE_OUT_PATH, R1, LOGGING)
     end
+
+    # for simulation in SIMULATIONS
+    #     basic_analysis(simulation, BASE_OUT_PATH, R1, R2, NORM, LOGGING, GAS_EVOLUTION)
+    # end
 
 end
