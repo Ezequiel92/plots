@@ -1141,7 +1141,8 @@ function comparison(
     simulation_paths::Vector{String},
     base_out_path::String,
     r1::Unitful.Length,
-    logging::Bool,
+    logging::Bool;
+    labels::Vector{String}=basename.(simulation_paths),
 )
 
     # Create the output folders
@@ -1162,8 +1163,8 @@ function comparison(
     # Starts at ~200 Myr to ignore initial very low fractions
     initial_snaps = GalaxyInspector.findClosestSnapshot.(simulation_paths, 0.2u"Gyr")
 
-    sim_names = basename.(simulation_paths)
-    n_sims    = length(simulation_paths)
+    n_sims= length(simulation_paths)
+    @assert n_sims == length(labels) "Number of simulations and labels must match."
 
     ################################################################################################
     # Compute the evolution of the total mass of the different gas components and of the SFR
@@ -1185,98 +1186,98 @@ function comparison(
 
     x_plot_params = GalaxyInspector.plotParams(:physical_time)
 
-    for (simulation, z0_snap) in zip(simulation_paths, snaps)
+    # for (simulation, z0_snap) in zip(simulation_paths, snaps)
 
-        for quantity in quantities
+    #     for quantity in quantities
 
-            if logging
-                println(log_file, "#"^100)
-                println(
-                    log_file,
-                    "# Computing the evolution of $(quantity) for $(basename(simulation))",
-                )
-                println(log_file, "#"^100, "\n")
-            end
+    #         if logging
+    #             println(log_file, "#"^100)
+    #             println(
+    #                 log_file,
+    #                 "# Computing the evolution of $(quantity) for $(basename(simulation))",
+    #             )
+    #             println(log_file, "#"^100, "\n")
+    #         end
 
-            y_plot_params = GalaxyInspector.plotParams(quantity)
+    #         y_plot_params = GalaxyInspector.plotParams(quantity)
 
-            plotTimeSeries(
-                [simulation],
-                [lines!];
-                output_path=temp_folder,
-                filename="$(quantity)_$(basename(simulation))",
-                da_functions=[GalaxyInspector.daEvolution],
-                da_args=[(:physical_time, quantity)],
-                da_kwargs=[
-                    (;
-                        filter_mode=:subhalo,
-                        extra_filter=dd -> GalaxyInspector.filterWithinSphere(
-                            dd,
-                            (0.0u"kpc", r1),
-                            :zero,
-                        ),
-                        scaling=identity,
-                    ),
-                ],
-                x_unit=x_plot_params.unit,
-                y_unit=y_plot_params.unit,
-                x_exp_factor=x_plot_params.exp_factor,
-                y_exp_factor=y_plot_params.exp_factor,
-                save_figures=false,
-                backup_results=true,
-            )
+    #         plotTimeSeries(
+    #             [simulation],
+    #             [lines!];
+    #             output_path=temp_folder,
+    #             filename="$(quantity)_$(basename(simulation))",
+    #             da_functions=[GalaxyInspector.daEvolution],
+    #             da_args=[(:physical_time, quantity)],
+    #             da_kwargs=[
+    #                 (;
+    #                     filter_mode=:subhalo,
+    #                     extra_filter=dd -> GalaxyInspector.filterWithinSphere(
+    #                         dd,
+    #                         (0.0u"kpc", r1),
+    #                         :zero,
+    #                     ),
+    #                     scaling=identity,
+    #                 ),
+    #             ],
+    #             x_unit=x_plot_params.unit,
+    #             y_unit=y_plot_params.unit,
+    #             x_exp_factor=x_plot_params.exp_factor,
+    #             y_exp_factor=y_plot_params.exp_factor,
+    #             save_figures=false,
+    #             backup_results=true,
+    #         )
 
-        end
+    #     end
 
-        y_plot_params = GalaxyInspector.plotParams(:sfr)
+    #     y_plot_params = GalaxyInspector.plotParams(:sfr)
 
-        filter_function, translation, rotation, request = GalaxyInspector.selectFilter(
-            :subhalo,
-            y_plot_params.request,
-        )
+    #     filter_function, translation, rotation, request = GalaxyInspector.selectFilter(
+    #         :subhalo,
+    #         y_plot_params.request,
+    #     )
 
-        if logging
-            println(log_file, "#"^100)
-            println(
-                log_file,
-                "# Computing the evolution of the SFR for $(basename(simulation))",
-            )
-            println(log_file, "#"^100, "\n")
-        end
+    #     if logging
+    #         println(log_file, "#"^100)
+    #         println(
+    #             log_file,
+    #             "# Computing the evolution of the SFR for $(basename(simulation))",
+    #         )
+    #         println(log_file, "#"^100, "\n")
+    #     end
 
-        plotSnapshot(
-            [simulation],
-            request,
-            [lines!];
-            output_path=temp_folder,
-            base_filename="sfr_$(basename(simulation))",
-            slice=z0_snap,
-            filter_function,
-            da_functions=[GalaxyInspector.daStellarHistory],
-            da_args=[()],
-            da_kwargs=[
-                (;
-                    quantity=:sfr,
-                    n_bins=80,
-                    filter_function=dd -> GalaxyInspector.filterWithinSphere(
-                        dd,
-                        (0.0u"kpc", r1),
-                        :zero,
-                    ),
-                ),
-            ],
-            transform_box=true,
-            translation,
-            rotation,
-            x_unit=x_plot_params.unit,
-            y_unit=y_plot_params.unit,
-            x_exp_factor=x_plot_params.exp_factor,
-            y_exp_factor=y_plot_params.exp_factor,
-            save_figures=false,
-            backup_results=true,
-        )
+    #     plotSnapshot(
+    #         [simulation],
+    #         request,
+    #         [lines!];
+    #         output_path=temp_folder,
+    #         base_filename="sfr_$(basename(simulation))",
+    #         slice=z0_snap,
+    #         filter_function,
+    #         da_functions=[GalaxyInspector.daStellarHistory],
+    #         da_args=[()],
+    #         da_kwargs=[
+    #             (;
+    #                 quantity=:sfr,
+    #                 n_bins=80,
+    #                 filter_function=dd -> GalaxyInspector.filterWithinSphere(
+    #                     dd,
+    #                     (0.0u"kpc", r1),
+    #                     :zero,
+    #                 ),
+    #             ),
+    #         ],
+    #         transform_box=true,
+    #         translation,
+    #         rotation,
+    #         x_unit=x_plot_params.unit,
+    #         y_unit=y_plot_params.unit,
+    #         x_exp_factor=x_plot_params.exp_factor,
+    #         y_exp_factor=y_plot_params.exp_factor,
+    #         save_figures=false,
+    #         backup_results=true,
+    #     )
 
-    end
+    # end
 
     ################################################################################################
     # Plot the evolution of the masses and of the SFR for the different gas components
@@ -1311,7 +1312,9 @@ function comparison(
     )
 
     colors = current_theme[:palette][:color][]
-    y_lows = [exp10(-2.5), exp10(-2.5), exp10(-5.0)]
+    y_lows = [-3.2, exp10(-2.5), exp10(-2.5), exp10(-10.5)]
+    x_limits = (-0.1, 2.1)
+    xticks = 0.0:0.5:2.0
 
     with_theme(current_theme) do
 
@@ -1335,17 +1338,16 @@ function comparison(
         ax = CairoMakie.Axis(
             f[1, 1];
             xlabel,
-            ylabel,
+            ylabel=L"$\log_{10}$ %$(ylabel)",
             aspect=AxisAspect(1.7),
-            yscale=log10,
             xlabelvisible=false,
             xticklabelsvisible=false,
-            xticks=0:2:14,
-            yticks=[exp10(-2.0), exp10(-1.0), exp10(0.0), exp10(1.0)],
-            limits=(nothing, nothing, exp10(-2.5), exp10(1.5)),
+            xticks,
+            yticks=-3:1:1,
+            limits=(x_limits[1], x_limits[2], y_lows[1], nothing),
         )
 
-        for (path, label, color) in zip(jld2_paths[1:n_sims], sim_names, colors)
+        for (path, label, color) in zip(jld2_paths[1:n_sims], labels, colors)
 
             jldopen(path, "r") do jld2_file
 
@@ -1353,19 +1355,19 @@ function comparison(
 
                 x, y = jld2_file[address]["simulation_001"]
 
-                lines!(ax, x, y; label, color)
+                lines!(ax, x, log10.(y); label, color)
 
             end
 
         end
 
-        axislegend(ax, position=:rb, framevisible=false, nbanks=1)
+        axislegend(ax, position=:lt, framevisible=false, nbanks=1)
 
         ##############################
         # Plot the gas mass evolution
         ##############################
 
-        for (i, (quantity, y_low)) in enumerate(zip(quantities, y_lows))
+        for (i, (quantity, y_low)) in enumerate(zip(quantities, y_lows[2:end]))
 
             y_plot_params = GalaxyInspector.plotParams(quantity)
 
@@ -1388,13 +1390,13 @@ function comparison(
                 yscale=log10,
                 xlabelvisible=i+1 == n_panels,
                 xticklabelsvisible=i+1 == n_panels,
-                xticks=0:2:14,
-                limits=(nothing, nothing, y_low, nothing),
+                xticks,
+                limits=(x_limits[1], x_limits[2], y_low, nothing),
             )
 
             paths = jld2_paths[(n_sims*i+1):(n_sims*i+n_sims)]
 
-            for (path, label, color, initial_snap) in zip(paths, sim_names, colors, initial_snaps)
+            for (path, label, color, initial_snap) in zip(paths, labels, colors, initial_snaps)
 
                 jldopen(path, "r") do jld2_file
 
@@ -1414,7 +1416,7 @@ function comparison(
 
     end
 
-    rm(temp_folder; recursive=true)
+    # rm(temp_folder; recursive=true)
 
 end
 
@@ -1436,15 +1438,37 @@ function (@main)(ARGS)
     # If the evolution of the masses and of the fractions will be done (slow to run)
     GAS_EVOLUTION = true
 
+    # SIMULATIONS = [
+    #     # "F:/simulations/current/test_dust_blitz_02",
+    #     # "F:/simulations/current/test_dust_04",
+    #     "F:/simulations/current/test_dust_05",
+    #     "F:/simulations/current/test_dust_06",
+    #     "F:/simulations/current/test_dust_07",
+    # ]
+
+    # LABELS = [
+    #     "dust + shielding + UVB",
+    #     "dust + shielding",
+    #     "dust",
+    # ]
+
     SIMULATIONS = [
-        # "F:/simulations/current/test_dust_blitz_02",
-        # "F:/simulations/current/test_dust_04",
         "F:/simulations/current/test_dust_05",
-        "F:/simulations/current/test_dust_06",
+        "F:/simulations/current/test_dust_08",
+        "F:/simulations/current/test_dust_09",
+        "F:/simulations/current/test_dust_10",
     ]
 
+    LABELS = [
+        "No LWB",
+        "Incatasciato et al. 2023",
+        "Ahn et al. 2009",
+        "Visbal et al. 2014",
+    ]
+
+
     if length(SIMULATIONS) > 1
-        comparison(SIMULATIONS, BASE_OUT_PATH, R1, LOGGING)
+        comparison(SIMULATIONS, BASE_OUT_PATH, R1, LOGGING; labels=LABELS)
     end
 
     # for simulation in SIMULATIONS
