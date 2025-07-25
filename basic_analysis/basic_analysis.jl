@@ -1186,98 +1186,98 @@ function comparison(
 
     x_plot_params = GalaxyInspector.plotParams(:physical_time)
 
-    # for (simulation, z0_snap) in zip(simulation_paths, snaps)
+    for (simulation, z0_snap) in zip(simulation_paths, snaps)
 
-    #     for quantity in quantities
+        for quantity in quantities
 
-    #         if logging
-    #             println(log_file, "#"^100)
-    #             println(
-    #                 log_file,
-    #                 "# Computing the evolution of $(quantity) for $(basename(simulation))",
-    #             )
-    #             println(log_file, "#"^100, "\n")
-    #         end
+            if logging
+                println(log_file, "#"^100)
+                println(
+                    log_file,
+                    "# Computing the evolution of $(quantity) for $(basename(simulation))",
+                )
+                println(log_file, "#"^100, "\n")
+            end
 
-    #         y_plot_params = GalaxyInspector.plotParams(quantity)
+            y_plot_params = GalaxyInspector.plotParams(quantity)
 
-    #         plotTimeSeries(
-    #             [simulation],
-    #             [lines!];
-    #             output_path=temp_folder,
-    #             filename="$(quantity)_$(basename(simulation))",
-    #             da_functions=[GalaxyInspector.daEvolution],
-    #             da_args=[(:physical_time, quantity)],
-    #             da_kwargs=[
-    #                 (;
-    #                     filter_mode=:subhalo,
-    #                     extra_filter=dd -> GalaxyInspector.filterWithinSphere(
-    #                         dd,
-    #                         (0.0u"kpc", r1),
-    #                         :zero,
-    #                     ),
-    #                     scaling=identity,
-    #                 ),
-    #             ],
-    #             x_unit=x_plot_params.unit,
-    #             y_unit=y_plot_params.unit,
-    #             x_exp_factor=x_plot_params.exp_factor,
-    #             y_exp_factor=y_plot_params.exp_factor,
-    #             save_figures=false,
-    #             backup_results=true,
-    #         )
+            plotTimeSeries(
+                [simulation],
+                [lines!];
+                output_path=temp_folder,
+                filename="$(quantity)_$(basename(simulation))",
+                da_functions=[GalaxyInspector.daEvolution],
+                da_args=[(:physical_time, quantity)],
+                da_kwargs=[
+                    (;
+                        filter_mode=:subhalo,
+                        extra_filter=dd -> GalaxyInspector.filterWithinSphere(
+                            dd,
+                            (0.0u"kpc", r1),
+                            :zero,
+                        ),
+                        scaling=identity,
+                    ),
+                ],
+                x_unit=x_plot_params.unit,
+                y_unit=y_plot_params.unit,
+                x_exp_factor=x_plot_params.exp_factor,
+                y_exp_factor=y_plot_params.exp_factor,
+                save_figures=false,
+                backup_results=true,
+            )
 
-    #     end
+        end
 
-    #     y_plot_params = GalaxyInspector.plotParams(:sfr)
+        y_plot_params = GalaxyInspector.plotParams(:sfr)
 
-    #     filter_function, translation, rotation, request = GalaxyInspector.selectFilter(
-    #         :subhalo,
-    #         y_plot_params.request,
-    #     )
+        filter_function, translation, rotation, request = GalaxyInspector.selectFilter(
+            :subhalo,
+            y_plot_params.request,
+        )
 
-    #     if logging
-    #         println(log_file, "#"^100)
-    #         println(
-    #             log_file,
-    #             "# Computing the evolution of the SFR for $(basename(simulation))",
-    #         )
-    #         println(log_file, "#"^100, "\n")
-    #     end
+        if logging
+            println(log_file, "#"^100)
+            println(
+                log_file,
+                "# Computing the evolution of the SFR for $(basename(simulation))",
+            )
+            println(log_file, "#"^100, "\n")
+        end
 
-    #     plotSnapshot(
-    #         [simulation],
-    #         request,
-    #         [lines!];
-    #         output_path=temp_folder,
-    #         base_filename="sfr_$(basename(simulation))",
-    #         slice=z0_snap,
-    #         filter_function,
-    #         da_functions=[GalaxyInspector.daStellarHistory],
-    #         da_args=[()],
-    #         da_kwargs=[
-    #             (;
-    #                 quantity=:sfr,
-    #                 n_bins=80,
-    #                 filter_function=dd -> GalaxyInspector.filterWithinSphere(
-    #                     dd,
-    #                     (0.0u"kpc", r1),
-    #                     :zero,
-    #                 ),
-    #             ),
-    #         ],
-    #         transform_box=true,
-    #         translation,
-    #         rotation,
-    #         x_unit=x_plot_params.unit,
-    #         y_unit=y_plot_params.unit,
-    #         x_exp_factor=x_plot_params.exp_factor,
-    #         y_exp_factor=y_plot_params.exp_factor,
-    #         save_figures=false,
-    #         backup_results=true,
-    #     )
+        plotSnapshot(
+            [simulation],
+            request,
+            [lines!];
+            output_path=temp_folder,
+            base_filename="sfr_$(basename(simulation))",
+            slice=z0_snap,
+            filter_function,
+            da_functions=[GalaxyInspector.daStellarHistory],
+            da_args=[()],
+            da_kwargs=[
+                (;
+                    quantity=:sfr,
+                    n_bins=80,
+                    filter_function=dd -> GalaxyInspector.filterWithinSphere(
+                        dd,
+                        (0.0u"kpc", r1),
+                        :zero,
+                    ),
+                ),
+            ],
+            transform_box=true,
+            translation,
+            rotation,
+            x_unit=x_plot_params.unit,
+            y_unit=y_plot_params.unit,
+            x_exp_factor=x_plot_params.exp_factor,
+            y_exp_factor=y_plot_params.exp_factor,
+            save_figures=false,
+            backup_results=true,
+        )
 
-    # end
+    end
 
     ################################################################################################
     # Plot the evolution of the masses and of the SFR for the different gas components
@@ -1313,8 +1313,8 @@ function comparison(
 
     colors = current_theme[:palette][:color][]
     y_lows = [-3.2, exp10(-2.5), exp10(-2.5), exp10(-10.5)]
-    x_limits = (-0.1, 2.1)
-    xticks = 0.0:0.5:2.0
+    x_limits = (-0.1, 14.0)
+    xticks = 0.0:2.0:14.0
 
     with_theme(current_theme) do
 
@@ -1416,7 +1416,7 @@ function comparison(
 
     end
 
-    # rm(temp_folder; recursive=true)
+    rm(temp_folder; recursive=true)
 
 end
 
@@ -1438,41 +1438,39 @@ function (@main)(ARGS)
     # If the evolution of the masses and of the fractions will be done (slow to run)
     GAS_EVOLUTION = true
 
-    # SIMULATIONS = [
-    #     # "F:/simulations/current/test_dust_blitz_02",
-    #     # "F:/simulations/current/test_dust_04",
-    #     "F:/simulations/current/test_dust_05",
-    #     "F:/simulations/current/test_dust_06",
-    #     "F:/simulations/current/test_dust_07",
-    # ]
-
-    # LABELS = [
-    #     "dust + shielding + UVB",
-    #     "dust + shielding",
-    #     "dust",
-    # ]
-
     SIMULATIONS = [
+
         "F:/simulations/current/test_dust_05",
-        "F:/simulations/current/test_dust_08",
-        "F:/simulations/current/test_dust_09",
-        "F:/simulations/current/test_dust_10",
+        "F:/simulations/current/test_dust_06",
+        "F:/simulations/current/test_dust_07",
     ]
 
     LABELS = [
-        "No LWB",
-        "Incatasciato et al. 2023",
-        "Ahn et al. 2009",
-        "Visbal et al. 2014",
+        "dust + shielding + UVB",
+        "dust + shielding",
+        "dust",
     ]
 
+    # SIMULATIONS = [
+    #     "F:/simulations/current/test_dust_05",
+    #     "F:/simulations/current/test_dust_08",
+    #     "F:/simulations/current/test_dust_09",
+    #     "F:/simulations/current/test_dust_10",
+    # ]
+
+    # LABELS = [
+    #     "No LWB",
+    #     "Incatasciato et al. 2023",
+    #     "Ahn et al. 2009",
+    #     "Visbal et al. 2014",
+    # ]
 
     if length(SIMULATIONS) > 1
         comparison(SIMULATIONS, BASE_OUT_PATH, R1, LOGGING; labels=LABELS)
     end
 
-    # for simulation in SIMULATIONS
-    #     basic_analysis(simulation, BASE_OUT_PATH, R1, R2, NORM, LOGGING, GAS_EVOLUTION)
-    # end
+    for simulation in SIMULATIONS
+        basic_analysis(simulation, BASE_OUT_PATH, R1, R2, NORM, LOGGING, GAS_EVOLUTION)
+    end
 
 end
