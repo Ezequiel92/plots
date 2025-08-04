@@ -10,7 +10,6 @@ using CSV,
     ColorSchemes,
     Colors,
     DataFrames,
-    DelimitedFiles,
     FileIO,
     GLM,
     Glob,
@@ -39,8 +38,9 @@ function basic_analysis(
     r1::Unitful.Length,
     r2::Unitful.Length,
     norm::Int,
-    logging::Bool,
-    gas_evolution::Bool,
+    logging::Bool;
+    gas_evolution::Bool=false,
+    label::String=basename(simulation_path),
 )::Nothing
 
     # Create the output folders
@@ -53,21 +53,18 @@ function basic_analysis(
         GalaxyInspector.setLogging!(logging; stream=log_file)
     end
 
-    default_theme = merge(GalaxyInspector.DEFAULT_THEME, theme_latexfonts())
-
-    ############################
-    # Select the last snapshot
-    ###########################
-
-    n_snapshots = GalaxyInspector.countSnapshot(simulation_path)
+    # Number of the last snapshot
+    n_last_snapshot = GalaxyInspector.countSnapshot(simulation_path)
 
     (
-        !iszero(n_snapshots) ||
+        !iszero(n_last_snapshot) ||
         throw(ArgumentError("basic_analysis: $(simulation_path) has no snapshots"))
     )
 
-    # Number label for the last snapshot
-    snap_str = lpad(string(n_snapshots - 1), 3, "0")
+    # Number of the last snapshot as a string
+    snap_str = lpad(string(n_last_snapshot - 1), 3, "0")
+
+    default_theme = merge(GalaxyInspector.DEFAULT_THEME, theme_latexfonts())
 
     ###############
     # Report files
@@ -83,7 +80,7 @@ function basic_analysis(
 
     snapshotReport(
         [simulation_path],
-        [n_snapshots];
+        [n_last_snapshot];
         output_path=report_path,
         filter_mode=:subhalo,
         halo_idx=1,
@@ -112,7 +109,7 @@ function basic_analysis(
         [lines!];
         output_path=figures_path,
         base_filename="stellar_mass_density",
-        slice=n_snapshots,
+        slice=n_last_snapshot,
         filter_function,
         da_functions=[GalaxyInspector.daProfile],
         da_args=[(:stellar_mass, grid)],
@@ -140,7 +137,7 @@ function basic_analysis(
             Scatter=(markersize=20,),
             Band=(alpha=0.7,),
         ),
-        sim_labels=nothing,
+        sim_labels=[label],
     )
 
     #######################
@@ -155,7 +152,7 @@ function basic_analysis(
 
     stellarHistory(
         [simulation_path],
-        n_snapshots,
+        n_last_snapshot,
         :sfr;
         y_log=true,
         n_bins=70,
@@ -177,7 +174,7 @@ function basic_analysis(
 
     stellarHistory(
         [simulation_path],
-        n_snapshots,
+        n_last_snapshot,
         :stellar_mass;
         y_log=true,
         n_bins=70,
@@ -186,6 +183,43 @@ function basic_analysis(
         sim_labels=nothing,
         theme=Theme(palette=(color=[Makie.wong_colors()[2]],),),
     )
+
+    ################################################################################
+    # Comparison with experimental results from Mollá et al. (2015) (last snapshot)
+    ################################################################################
+
+    for quantity in [
+        :stellar_area_density,
+        :molecular_area_density,
+        :sfr_area_density,
+        :atomic_area_density,
+        :O_stellar_abundance,
+        :N_stellar_abundance,
+        :C_stellar_abundance,
+    ]
+
+        if logging
+            println(log_file, "#"^100)
+            println(log_file, "# Comparison with Mollá et al. (2015) for $(quantity)")
+            println(log_file, "#"^100, "\n")
+        end
+
+        compareMolla2015(
+            [simulation_path],
+            n_last_snapshot,
+            quantity;
+            output_path=figures_path,
+            filter_mode=:subhalo,
+            sim_labels=[label],
+            theme=Theme(
+                size=(1500, 880),
+                palette=(linestyle=[:solid],),
+                Axis=(aspect=nothing,),
+                Legend=(halign=:right, valign=:top),
+            ),
+        )
+
+    end
 
     #########################################################
     # Circularity histogram (last snapshot, radio separated)
@@ -220,7 +254,7 @@ function basic_analysis(
         output_path=figures_path,
         base_filename="circularity_histogram_radio_separated",
         output_format=".png",
-        slice=n_snapshots,
+        slice=n_last_snapshot,
         filter_function,
         da_functions=[GalaxyInspector.daLineHistogram],
         da_args=[(:stellar_circularity, grid, :stars)],
@@ -289,7 +323,7 @@ function basic_analysis(
         [lines!];
         output_path=figures_path,
         base_filename="stellar_eff_line_histogram_all_stars",
-        slice=n_snapshots,
+        slice=n_last_snapshot,
         filter_function,
         da_functions=[GalaxyInspector.daLineHistogram, GalaxyInspector.daLineHistogram],
         da_args=[(:stellar_eff, grid, :stars), (:gas_eff, grid, :gas)],
@@ -324,7 +358,7 @@ function basic_analysis(
         pf_kwargs=[(;)],
         output_path=figures_path,
         base_filename="stellar_eff_line_histogram_young_stars",
-        slice=n_snapshots,
+        slice=n_last_snapshot,
         filter_function,
         da_functions=[GalaxyInspector.daLineHistogram, GalaxyInspector.daLineHistogram],
         da_args=[(:stellar_eff, grid, :stars), (:gas_eff, grid, :gas)],
@@ -419,7 +453,7 @@ function basic_analysis(
                 pf_kwargs=[(; colorrange)],
                 output_path=temp_folder,
                 base_filename="$(quantity)_$(projection_plane)",
-                slice=n_snapshots,
+                slice=n_last_snapshot,
                 filter_function,
                 da_functions=[GalaxyInspector.daDensity2DProjection],
                 da_args=[(grid, quantity, type)],
@@ -564,7 +598,7 @@ function basic_analysis(
                 [heatmap!];
                 output_path=temp_folder,
                 base_filename="$(quantity)_$(projection_plane)",
-                slice=n_snapshots,
+                slice=n_last_snapshot,
                 filter_function,
                 da_functions=[GalaxyInspector.daDensity2DProjection],
                 da_args=[(grid, quantity, :cells)],
@@ -645,12 +679,12 @@ function basic_analysis(
     rm(temp_folder; recursive=true)
 
     ##############################################################
-    # Face-on density maps of diferent quantities (last snapshot)
+    # Face-on density maps of different quantities (last snapshot)
     ##############################################################
 
     if logging
         println(log_file, "#"^100)
-        println(log_file, "# Face-on density maps of diferent quantities (last snapshot)")
+        println(log_file, "# Face-on density maps of different quantities (last snapshot)")
         println(log_file, "#"^100, "\n")
     end
 
@@ -658,7 +692,7 @@ function basic_analysis(
 
     densityMap(
         [simulation_path],
-        n_snapshots;
+        n_last_snapshot;
         quantities=[:gas_mass],
         types=[:cells],
         output_path=temp_folder,
@@ -680,7 +714,7 @@ function basic_analysis(
 
     densityMap(
         [simulation_path],
-        n_snapshots;
+        n_last_snapshot;
         quantities=[:stellar_mass],
         types=[:particles],
         output_path=temp_folder,
@@ -702,7 +736,7 @@ function basic_analysis(
 
     temperatureMap(
         [simulation_path],
-        n_snapshots;
+        n_last_snapshot;
         type=:cells,
         output_path=temp_folder,
         filter_mode=:subhalo,
@@ -721,7 +755,7 @@ function basic_analysis(
 
     metallicityMap(
         [simulation_path],
-        n_snapshots;
+        n_last_snapshot;
         components=[:gas],
         types=[:cells],
         output_path=temp_folder,
@@ -741,7 +775,7 @@ function basic_analysis(
 
     metallicityMap(
         [simulation_path],
-        n_snapshots;
+        n_last_snapshot;
         components=[:stars],
         types=[:particles],
         output_path=temp_folder,
@@ -761,7 +795,7 @@ function basic_analysis(
 
     gasSFRMap(
         [simulation_path],
-        n_snapshots;
+        n_last_snapshot;
         type=:cells,
         output_path=temp_folder,
         filter_mode=:subhalo,
@@ -823,7 +857,7 @@ function basic_analysis(
 
     kennicuttSchmidtLaw(
         [simulation_path],
-        n_snapshots;
+        n_last_snapshot;
         quantity=:molecular_mass,
         reduce_grid=:square,
         grid_size=30.0u"kpc",
@@ -834,7 +868,7 @@ function basic_analysis(
         fit=true,
         output_file=joinpath(figures_path, "molecular_ks_law.png"),
         filter_mode=:subhalo,
-        sim_labels=[basename(simulation_path)],
+        sim_labels=[label],
         theme=Theme(
             Legend=(padding=(10, 0, 0, 0),),
             Axis=(
@@ -857,7 +891,7 @@ function basic_analysis(
 
     kennicuttSchmidtLaw(
         [simulation_path],
-        n_snapshots;
+        n_last_snapshot;
         quantity=:neutral_mass,
         reduce_grid=:square,
         grid_size=30.0u"kpc",
@@ -868,7 +902,7 @@ function basic_analysis(
         fit=true,
         output_file=joinpath(figures_path, "neutral_gas_ks_law.png"),
         filter_mode=:subhalo,
-        sim_labels=[basename(simulation_path)],
+        sim_labels=[label],
         theme=Theme(
             Legend=(padding=(10, 0, 0, 20),),
             Axis=(
@@ -891,7 +925,7 @@ function basic_analysis(
 
     kennicuttSchmidtLaw(
         [simulation_path],
-        n_snapshots;
+        n_last_snapshot;
         quantity=:gas_mass,
         reduce_grid=:square,
         grid_size=30.0u"kpc",
@@ -902,7 +936,7 @@ function basic_analysis(
         fit=true,
         output_file=joinpath(figures_path, "total_gas_ks_law.png"),
         filter_mode=:subhalo,
-        sim_labels=[basename(simulation_path)],
+        sim_labels=[label],
         theme=Theme(
             Legend=(padding=(10, 0, 0, 20),),
             Axis=(
@@ -1143,7 +1177,7 @@ function comparison(
     r1::Unitful.Length,
     logging::Bool;
     labels::Vector{String}=basename.(simulation_paths),
-)
+)::Nothing
 
     # Create the output folders
     report_path = mkpath(joinpath(base_out_path, "comparison"))
@@ -1157,7 +1191,7 @@ function comparison(
 
     temp_folder = joinpath(figures_path, "_mass_evolution")
 
-    # Select last snapshot
+    # Select the closest snapshot to readshift 0
     snaps = GalaxyInspector.findClosestSnapshot.(simulation_paths, 14.0u"Gyr")
 
     # Starts at ~200 Myr to ignore initial very low fractions
@@ -1166,10 +1200,10 @@ function comparison(
     n_sims= length(simulation_paths)
     @assert n_sims == length(labels) "Number of simulations and labels must match."
 
-    ################################################################################################
+    #########################################################################################
     # Compute the evolution of the total mass of the different gas components and of the SFR
     # (within a sphere of radius r1)
-    ################################################################################################
+    #########################################################################################
 
     if logging
         println(log_file, "#"^100)
@@ -1279,10 +1313,10 @@ function comparison(
 
     end
 
-    ################################################################################################
+    ###################################################################################
     # Plot the evolution of the masses and of the SFR for the different gas components
     # (within a sphere of radius r1)
-    ################################################################################################
+    ###################################################################################
 
     jld2_paths = joinpath.(
         temp_folder,
@@ -1418,6 +1452,16 @@ function comparison(
 
     rm(temp_folder; recursive=true)
 
+    ##############
+    # Close files
+    ##############
+
+    if logging
+        close(log_file)
+    end
+
+    return nothing
+
 end
 
 function (@main)(ARGS)
@@ -1436,20 +1480,27 @@ function (@main)(ARGS)
     NORM = 10000
 
     # If the evolution of the masses and of the fractions will be done (slow to run)
-    GAS_EVOLUTION = true
+    GAS_EVOLUTION = false
 
     SIMULATIONS = [
-
         "F:/simulations/current/test_dust_05",
-        "F:/simulations/current/test_dust_06",
-        "F:/simulations/current/test_dust_07",
     ]
 
     LABELS = [
-        "dust + shielding + UVB",
-        "dust + shielding",
-        "dust",
+        "test_dust",
     ]
+
+    # SIMULATIONS = [
+    #     "F:/simulations/current/test_dust_05",
+    #     "F:/simulations/current/test_dust_06",
+    #     "F:/simulations/current/test_dust_07",
+    # ]
+
+    # LABELS = [
+    #     "dust + shielding + UVB",
+    #     "dust + shielding",
+    #     "dust",
+    # ]
 
     # SIMULATIONS = [
     #     "F:/simulations/current/test_dust_05",
@@ -1469,8 +1520,17 @@ function (@main)(ARGS)
         comparison(SIMULATIONS, BASE_OUT_PATH, R1, LOGGING; labels=LABELS)
     end
 
-    for simulation in SIMULATIONS
-        basic_analysis(simulation, BASE_OUT_PATH, R1, R2, NORM, LOGGING, GAS_EVOLUTION)
+    for (simulation, label) in zip(SIMULATIONS, LABELS)
+        basic_analysis(
+            simulation,
+            BASE_OUT_PATH,
+            R1,
+            R2,
+            NORM,
+            LOGGING;
+            gas_evolution=GAS_EVOLUTION,
+            label,
+        )
     end
 
 end
