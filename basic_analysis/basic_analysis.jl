@@ -87,6 +87,112 @@ function basic_analysis(
         subhalo_rel_idx=1,
     )
 
+    ####################################################################
+    # Stellar density maps (last snapshot, face-on/edge-on projections)
+    ####################################################################
+
+    if logging
+        println(log_file, "#"^100)
+        println(log_file, "# Stellar density maps (last snapshot, face-on/edge-on projections)")
+        println(log_file, "#"^100, "\n")
+    end
+
+    temp_folder = joinpath(figures_path, "stellar_density_maps")
+
+    grid = GalaxyInspector.CubicGrid(65.0u"kpc", 400)
+
+    x_label = GalaxyInspector.getLabel("x", 0, u"kpc")
+    y_label = GalaxyInspector.getLabel("y", 0, u"kpc")
+    z_label = GalaxyInspector.getLabel("z", 0, u"kpc")
+
+    y_limits = [32, 12]
+
+    paths = joinpath.(temp_folder, ["stellar_mass_xy.jld2", "stellar_mass_xz.jld2"])
+
+    for projection_plane in [:xy, :xz]
+
+        filter_function, translation, rotation, request = GalaxyInspector.selectFilter(
+            :all_subhalo,
+            GalaxyInspector.plotParams(:stellar_mass).request,
+        )
+
+        GalaxyInspector.plotSnapshot(
+            [simulation_path],
+            request,
+            [heatmap!];
+            output_path=temp_folder,
+            base_filename="stellar_mass_$(projection_plane)",
+            slice=n_last_snapshot,
+            filter_function,
+            da_functions=[GalaxyInspector.daDensity2DProjection],
+            da_args=[(grid, :stellar_mass, :particles)],
+            da_kwargs=[(; projection_plane)],
+            transform_box=true,
+            translation,
+            rotation,
+            x_unit=u"kpc",
+            y_unit=u"kpc",
+            save_figures=false,
+            backup_results=true,
+        )
+
+    end
+
+    with_theme(default_theme) do
+
+        f = Figure(size=(880, 1300), figure_padding=(5, 20, 0, 0))
+
+        for (row, path) in pairs(paths)
+
+            xaxis_v = row == 2
+
+            ax = CairoMakie.Axis(
+                f[row+1, 1];
+                xlabel=x_label,
+                ylabel=(row == 1 ? y_label : z_label),
+                xminorticksvisible=xaxis_v,
+                xticksvisible=xaxis_v,
+                xlabelvisible=xaxis_v,
+                xticklabelsvisible=xaxis_v,
+                xticklabelsize=35,
+                yticklabelsize=35,
+                xticks=[-30, -20, -10, 0, 10, 20, 30],
+                yticks=[-30, -20, -10, 0, 10, 20, 30],
+                limits=(-32.0, 32.0, -y_limits[row], y_limits[row]),
+                aspect=DataAspect(),
+            )
+
+            jldopen(path, "r") do jld2_file
+
+                x, y, z = jld2_file[first(keys(jld2_file))]["simulation_001"]
+
+                pf = heatmap!(ax, x, y, z; colorrange=(6.0, 11.0))
+
+                if row == 1
+
+                    Colorbar(
+                        f[row, 1],
+                        pf,
+                        label=L"\log_{10} \, \Sigma_* \,\, [\mathrm{M_\odot \, kpc^{-2}}]",
+                        ticklabelsize=28,
+                        ticks=6:1:11,
+                        vertical=false,
+                    )
+
+                end
+
+            end
+
+        end
+
+        rowsize!(f.layout, 3, Relative(0.3f0))
+
+        Makie.save(joinpath(figures_path, "stellar_density_maps.png"), f)
+
+    end
+
+    rm(temp_folder; recursive=true)
+
     ##################################################
     # Stellar surface density profile (last snapshot)
     ##################################################
@@ -100,7 +206,9 @@ function basic_analysis(
     filter_function, translation, rotation, request = GalaxyInspector.selectFilter(
         :subhalo, GalaxyInspector.plotParams(:stellar_mass).request
     )
+
     grid = GalaxyInspector.CircularGrid(25.0u"kpc", 25)
+
     y_label = GalaxyInspector.getLabel(L"\Sigma_\star", 0, u"Msun * kpc^-2")
 
     plotSnapshot(
@@ -208,7 +316,7 @@ function basic_analysis(
             [simulation_path],
             n_last_snapshot,
             quantity;
-            output_path=figures_path,
+            output_path=joinpath(figures_path, "Molla2015"),
             filter_mode=:subhalo,
             sim_labels=[label],
             theme=Theme(
@@ -252,7 +360,7 @@ function basic_analysis(
         request,
         [lines!];
         output_path=figures_path,
-        base_filename="circularity_histogram_radio_separated",
+        base_filename="circularity_histogram",
         output_format=".png",
         slice=n_last_snapshot,
         filter_function,
@@ -322,7 +430,7 @@ function basic_analysis(
         request,
         [lines!];
         output_path=figures_path,
-        base_filename="stellar_eff_line_histogram_all_stars",
+        base_filename="stellar_eff_histogram_all_stars",
         slice=n_last_snapshot,
         filter_function,
         da_functions=[GalaxyInspector.daLineHistogram, GalaxyInspector.daLineHistogram],
@@ -357,7 +465,7 @@ function basic_analysis(
         [lines!];
         pf_kwargs=[(;)],
         output_path=figures_path,
-        base_filename="stellar_eff_line_histogram_young_stars",
+        base_filename="stellar_eff_histogram_young_stars",
         slice=n_last_snapshot,
         filter_function,
         da_functions=[GalaxyInspector.daLineHistogram, GalaxyInspector.daLineHistogram],
@@ -403,16 +511,15 @@ function basic_analysis(
     temp_folder = joinpath(figures_path, "density_maps")
 
     grid = GalaxyInspector.CubicGrid(65.0u"kpc", 400)
-    colorrange = (2.5, 8.5)
     projections = [:xy, :xz]
-    quantities = [:gas_mass, :molecular_mass, :atomic_mass, :ionized_mass]
-    types = [:cells, :cells, :cells, :cells]
+    quantities = [:gas_mass, :molecular_mass, :atomic_mass, :ionized_mass, :dust_mass]
 
     colorbar_labels = [
-        L"\log_{10} \, \Sigma_\mathrm{gas} \,\, [\mathrm{M_\odot \, kpc^{-2}}]"
-        L"\log_{10} \, \Sigma_\mathrm{H_2} \,\, [\mathrm{M_\odot \, kpc^{-2}}]"
-        L"\log_{10} \, \Sigma_\mathrm{HI} \,\, [\mathrm{M_\odot \, kpc^{-2}}]"
-        L"\log_{10} \, \Sigma_\mathrm{HII} \,\, [\mathrm{M_\odot \, kpc^{-2}}]"
+        L"\log_{10} \, \Sigma_\mathrm{gas} \,\, [\mathrm{M_\odot \, kpc^{-2}}]",
+        L"\log_{10} \, \Sigma_\mathrm{H_2} \,\, [\mathrm{M_\odot \, kpc^{-2}}]",
+        L"\log_{10} \, \Sigma_\mathrm{HI} \,\, [\mathrm{M_\odot \, kpc^{-2}}]",
+        L"\log_{10} \, \Sigma_\mathrm{HII} \,\, [\mathrm{M_\odot \, kpc^{-2}}]",
+        L"\log_{10} \, \Sigma_\mathrm{dust} \,\, [\mathrm{M_\odot \, kpc^{-2}}]",
     ]
 
     x_label = GalaxyInspector.getLabel("x", 0, u"kpc")
@@ -420,172 +527,14 @@ function basic_analysis(
     z_label = GalaxyInspector.getLabel("z", 0, u"kpc")
     n_rows = length(projections)
     n_cols = length(quantities)
-    x_size = 1700
+    x_size = 2100
     y_size = (x_size / n_cols) * n_rows + 180.0
 
-    paths = joinpath.(
-        temp_folder,
-        [
-            "gas_mass_xy.jld2",
-            "molecular_mass_xy.jld2",
-            "atomic_mass_xy.jld2",
-            "ionized_mass_xy.jld2",
-            "gas_mass_xz.jld2",
-            "molecular_mass_xz.jld2",
-            "atomic_mass_xz.jld2",
-            "ionized_mass_xz.jld2",
-        ]
-    )
+    paths = Vector{String}(undef, n_rows * n_cols)
 
-    for projection_plane in projections
+    for (j, quantity) in pairs(quantities)
 
-        for (quantity, type) in zip(quantities, types)
-
-            filter_function, translation, rotation, request = GalaxyInspector.selectFilter(
-                :all_subhalo,
-                GalaxyInspector.plotParams(quantity).request,
-            )
-
-            GalaxyInspector.plotSnapshot(
-                [simulation_path],
-                request,
-                [heatmap!];
-                pf_kwargs=[(; colorrange)],
-                output_path=temp_folder,
-                base_filename="$(quantity)_$(projection_plane)",
-                slice=n_last_snapshot,
-                filter_function,
-                da_functions=[GalaxyInspector.daDensity2DProjection],
-                da_args=[(grid, quantity, type)],
-                da_kwargs=[(; projection_plane)],
-                transform_box=true,
-                translation,
-                rotation,
-                x_unit=u"kpc",
-                y_unit=u"kpc",
-                save_figures=false,
-                backup_results=true,
-            )
-
-        end
-
-    end
-
-    with_theme(default_theme) do
-
-        f = Figure(size=(x_size, y_size), figure_padding=(5, 10, 0, 0))
-
-        for (idx, path) in enumerate(paths)
-
-            row = ceil(Int, idx / n_cols)
-            col = mod1(idx, n_cols)
-
-            xaxis_v = row == 2
-            yaxis_v = col == 1
-
-            ax = CairoMakie.Axis(
-                f[row+1, col];
-                xlabel=x_label,
-                ylabel=(row == 1 ? y_label : z_label),
-                xminorticksvisible=xaxis_v,
-                xticksvisible=xaxis_v,
-                xlabelvisible=xaxis_v,
-                xticklabelsvisible=xaxis_v,
-                yminorticksvisible=yaxis_v,
-                yticksvisible=yaxis_v,
-                ylabelvisible=yaxis_v,
-                yticklabelsvisible=yaxis_v,
-                xticklabelsize=23,
-                yticklabelsize=23,
-                xticks=[-30, -20, -10, 0, 10, 20, 30],
-                yticks=[-30, -20, -10, 0, 10, 20, 30],
-            )
-
-            jldopen(path, "r") do jld2_file
-
-                x, y, z = jld2_file[first(keys(jld2_file))]["simulation_001"]
-
-                pf = heatmap!(ax, x, y, z; colorrange)
-
-                if row == 1
-
-                    Colorbar(
-                        f[row, col],
-                        pf,
-                        label=colorbar_labels[col],
-                        labelsize=30,
-                        ticklabelsize=20,
-                        vertical=false,
-                        ticks=2:1:8,
-                    )
-
-                end
-
-            end
-
-            colgap!(f.layout, 20)
-
-        end
-
-        Makie.save(joinpath(figures_path, "density_maps_grid.png"), f)
-
-    end
-
-    rm(temp_folder; recursive=true)
-
-    ##########################################################################
-    # Gas components density map (last snapshot, face-on/edge-on projections)
-    ##########################################################################
-
-    if logging
-        println(log_file, "#"^100)
-        println(
-            log_file,
-            "# Gas components density map (last snapshot, face-on/edge-on projections)",
-        )
-        println(log_file, "#"^100, "\n")
-    end
-
-    temp_folder = joinpath(figures_path, "density_maps")
-
-    grid = GalaxyInspector.CubicGrid(65.0u"kpc", 400)
-    projections = [:xy, :xz]
-    quantities = [:gas_mass, :molecular_mass, :atomic_mass, :ionized_mass]
-    types = [:cells, :cells, :cells, :cells]
-
-    colorbar_labels = [
-        L"\log_{10} \, \Sigma_\mathrm{gas} \,\, [\mathrm{M_\odot \, kpc^{-2}}]"
-        L"\log_{10} \, \Sigma_\mathrm{H_2} \,\, [\mathrm{M_\odot \, kpc^{-2}}]"
-        L"\log_{10} \, \Sigma_\mathrm{HI} \,\, [\mathrm{M_\odot \, kpc^{-2}}]"
-        L"\log_{10} \, \Sigma_\mathrm{HII} \,\, [\mathrm{M_\odot \, kpc^{-2}}]"
-    ]
-
-    x_label = GalaxyInspector.getLabel("x", 0, u"kpc")
-    y_label = GalaxyInspector.getLabel("y", 0, u"kpc")
-    z_label = GalaxyInspector.getLabel("z", 0, u"kpc")
-    n_rows = length(projections)
-    n_cols = length(quantities)
-    x_size = 1700
-    y_size = (x_size / n_cols) * n_rows + 180.0
-    colorrange = (2.5, 8.5)
-
-    paths = joinpath.(
-        temp_folder,
-        [
-            "gas_mass_xy.jld2",
-            "molecular_mass_xy.jld2",
-            "atomic_mass_xy.jld2",
-            "ionized_mass_xy.jld2",
-            "gas_mass_xz.jld2",
-            "molecular_mass_xz.jld2",
-            "atomic_mass_xz.jld2",
-            "ionized_mass_xz.jld2",
-        ]
-    )
-
-    for projection_plane in projections
-
-        for quantity in quantities
+        for (i, projection_plane) in pairs(projections)
 
             filter_function, translation, rotation, request = GalaxyInspector.selectFilter(
                 :all_subhalo,
@@ -610,6 +559,11 @@ function basic_analysis(
                 y_unit=u"kpc",
                 save_figures=false,
                 backup_results=true,
+            )
+
+            paths[j + n_cols * (i - 1)] = joinpath(
+                temp_folder,
+                "$(quantity)_$(projection_plane).jld2",
             )
 
         end
@@ -650,7 +604,7 @@ function basic_analysis(
 
                 x, y, z = jld2_file[first(keys(jld2_file))]["simulation_001"]
 
-                pf = heatmap!(ax, x, y, z; colorrange)
+                pf = heatmap!(ax, x, y, z)
 
                 if row == 1
 
@@ -672,7 +626,7 @@ function basic_analysis(
 
         end
 
-        Makie.save(joinpath(figures_path, "gas_density_maps_grid.png"), f)
+        Makie.save(joinpath(figures_path, "gas_density_maps.png"), f)
 
     end
 
@@ -827,7 +781,7 @@ function basic_analysis(
                 "$(basename(simulation_path))_stars_xy_metallicity_map_snap_$(snap_str).png",
             ]
         );
-        output_path=joinpath(figures_path, "all_maps.png"),
+        output_path=joinpath(figures_path, "face_on_maps.png"),
     )
 
     rm(temp_folder, recursive=true, force=true)
@@ -866,7 +820,7 @@ function basic_analysis(
         post_processing=GalaxyInspector.ppSun2023!,
         pp_kwargs=(; color=Makie.wong_colors()[3]),
         fit=true,
-        output_file=joinpath(figures_path, "molecular_ks_law.png"),
+        output_file=joinpath(figures_path, "ks_law/molecular.png"),
         filter_mode=:subhalo,
         sim_labels=[label],
         theme=Theme(
@@ -899,8 +853,8 @@ function basic_analysis(
         gas_weights=nothing,
         post_processing=GalaxyInspector.ppBigiel2010!,
         pp_kwargs=(; galaxy=:all, quantity=:neutral, color=Makie.wong_colors()[3]),
-        fit=true,
-        output_file=joinpath(figures_path, "neutral_gas_ks_law.png"),
+        fit=false,
+        output_file=joinpath(figures_path, "ks_law/neutral_gas.png"),
         filter_mode=:subhalo,
         sim_labels=[label],
         theme=Theme(
@@ -933,8 +887,8 @@ function basic_analysis(
         gas_weights=nothing,
         post_processing=GalaxyInspector.ppBigiel2010!,
         pp_kwargs=(; galaxy=:all, quantity=:neutral, color=Makie.wong_colors()[3]),
-        fit=true,
-        output_file=joinpath(figures_path, "total_gas_ks_law.png"),
+        fit=false,
+        output_file=joinpath(figures_path, "ks_law/total_gas.png"),
         filter_mode=:subhalo,
         sim_labels=[label],
         theme=Theme(
@@ -978,7 +932,7 @@ function basic_analysis(
             fill(simulation_path, length(quantities)),
             [lines!];
             output_path=temp_folder,
-            filename="gas_fractions_vs_physical_time_inside_$(r1_label)",
+            filename="gas_fractions_evolution",
             output_format=".pdf",
             da_functions=[GalaxyInspector.daEvolution],
             da_args=[(:physical_time, quantity) for quantity in quantities],
@@ -1016,7 +970,7 @@ function basic_analysis(
             fill(simulation_path, length(quantities)),
             [lines!];
             output_path=temp_folder,
-            filename="gas_masses_vs_physical_time_inside_$(r1_label)",
+            filename="gas_masses_evolution",
             output_format=".pdf",
             da_functions=[GalaxyInspector.daEvolution],
             da_args=[(:physical_time, quantity) for quantity in quantities],
@@ -1042,8 +996,8 @@ function basic_analysis(
         paths = joinpath.(
             temp_folder,
             [
-                "gas_masses_vs_physical_time_inside_$(r1_label).jld2",
-                "gas_fractions_vs_physical_time_inside_$(r1_label).jld2",
+                "gas_masses_evolution.jld2",
+                "gas_fractions_evolution.jld2",
             ],
         )
 
@@ -1080,36 +1034,41 @@ function basic_analysis(
                     ax_1,
                     x_s[initial_snap:end], y_s[initial_snap:end];
                     color=Makie.wong_colors()[2],
+                    linestyle=:solid,
                     label="Stellar mass",
                 )
                 lines!(
                     ax_1,
                     x_h[initial_snap:end], y_h[initial_snap:end];
                     color=:black,
+                    linestyle=:solid,
                     label="Gas mass",
                 )
                 lines!(
                     ax_1,
                     x_i[initial_snap:end], y_i[initial_snap:end];
                     color=Makie.wong_colors()[1],
+                    linestyle=:solid,
                     label="Ionized mass",
                 )
                 lines!(
                     ax_1,
                     x_a[initial_snap:end], y_a[initial_snap:end];
                     color=Makie.wong_colors()[4],
+                    linestyle=:solid,
                     label="Atomic mass",
                 )
                 lines!(
                     ax_1,
                     x_m[initial_snap:end], y_m[initial_snap:end];
                     color=Makie.wong_colors()[3],
+                    linestyle=:solid,
                     label="Molecular mass",
                 )
 
             end
 
-            axislegend(ax_1, position=:rb, framevisible=false, nbanks=1)
+            axislegend(ax_1, position=:rb, framevisible=false, nbanks=1, linestyle=:solid)
 
             ax_2 = CairoMakie.Axis(
                 f[2, 1];
@@ -1131,18 +1090,21 @@ function basic_analysis(
                     x_i[initial_snap:end],
                     log10.(y_i[initial_snap:end]);
                     color=Makie.wong_colors()[1],
+                    linestyle=:solid,
                 )
                 lines!(
                     ax_2,
                     x_a[initial_snap:end],
                     log10.(y_a[initial_snap:end]);
                     color=Makie.wong_colors()[4],
+                    linestyle=:solid,
                 )
                 lines!(
                     ax_2,
                     x_m[initial_snap:end],
                     log10.(y_m[initial_snap:end]);
                     color=Makie.wong_colors()[3],
+                    linestyle=:solid,
                 )
 
             end
@@ -1163,9 +1125,7 @@ function basic_analysis(
     # Close files
     ##############
 
-    if logging
-        close(log_file)
-    end
+    logging && close(log_file)
 
     return nothing
 
@@ -1395,7 +1355,7 @@ function comparison(
 
         end
 
-        axislegend(ax, position=:lt, framevisible=false, nbanks=1)
+        axislegend(ax, position=:rb, framevisible=false, nbanks=1)
 
         ##############################
         # Plot the gas mass evolution
@@ -1456,9 +1416,7 @@ function comparison(
     # Close files
     ##############
 
-    if logging
-        close(log_file)
-    end
+    logging && close(log_file)
 
     return nothing
 
@@ -1480,27 +1438,15 @@ function (@main)(ARGS)
     NORM = 10000
 
     # If the evolution of the masses and of the fractions will be done (slow to run)
-    GAS_EVOLUTION = false
+    GAS_EVOLUTION = true
 
     SIMULATIONS = [
-        "F:/simulations/current/test_dust_05",
+        "F:/simulations/current/test_dust_11",
     ]
 
     LABELS = [
-        "test_dust",
+        "test_dust_11",
     ]
-
-    # SIMULATIONS = [
-    #     "F:/simulations/current/test_dust_05",
-    #     "F:/simulations/current/test_dust_06",
-    #     "F:/simulations/current/test_dust_07",
-    # ]
-
-    # LABELS = [
-    #     "dust + shielding + UVB",
-    #     "dust + shielding",
-    #     "dust",
-    # ]
 
     # SIMULATIONS = [
     #     "F:/simulations/current/test_dust_05",
