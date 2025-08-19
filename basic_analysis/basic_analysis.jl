@@ -818,19 +818,123 @@ function basic_analysis(
         bin_size=1.5u"kpc",
         gas_weights=nothing,
         post_processing=GalaxyInspector.ppSun2023!,
-        pp_kwargs=(; color=Makie.wong_colors()[3]),
+        pp_kwargs=(; color=Makie.wong_colors()[2]),
         fit=true,
-        output_file=joinpath(figures_path, "ks_law/molecular.png"),
+        output_file=joinpath(figures_path, "_ks_law/sun2023_molecular.png"),
         filter_mode=:subhalo,
         sim_labels=[label],
         theme=Theme(
             Legend=(padding=(10, 0, 0, 0),),
             Axis=(
-                limits=(4.5, 9.5, -4.5, 1.5),
-                xticks=5:1:9,
-                yticks=-4:1:1,
+                limits=(3.5, 8.5, -4.5, 0.5),
+                xticks=4:1:8,
+                yticks=-4:1:0,
             ),
         ),
+    )
+
+    kennicuttSchmidtLaw(
+        [simulation_path],
+        n_last_snapshot;
+        quantity=:molecular_mass,
+        reduce_grid=:square,
+        grid_size=30.0u"kpc",
+        bin_size=1.5u"kpc",
+        gas_weights=nothing,
+        post_processing=GalaxyInspector.ppLeroy2008!,
+        pp_kwargs=(; color=Makie.wong_colors()[2]),
+        fit=true,
+        output_file=joinpath(figures_path, "_ks_law/leroy2008_molecular.png"),
+        filter_mode=:subhalo,
+        sim_labels=[label],
+        theme=Theme(
+            Legend=(padding=(10, 0, 0, 0),),
+            Axis=(
+                limits=(3.5, 8.5, -4.5, 0.5),
+                xticks=4:1:8,
+                yticks=-4:1:0,
+            ),
+        ),
+    )
+
+    molecular_paths = [
+        joinpath(figures_path, "_ks_law/leroy2008_molecular.png"),
+        joinpath(figures_path, "_ks_law/sun2023_molecular.png"),
+    ]
+
+    GalaxyInspector.hvcatImages(
+        1,
+        molecular_paths;
+        output_path=joinpath(figures_path, "_ks_law/molecular.png"),
+    )
+
+    ################
+    # Atomic KS law
+    ################
+
+    if logging
+        println(log_file, "#"^50)
+        println(log_file, "# Atomic KS law")
+        println(log_file, "#"^50, "\n")
+    end
+
+    kennicuttSchmidtLaw(
+        [simulation_path],
+        n_last_snapshot;
+        quantity=:atomic_mass,
+        reduce_grid=:square,
+        grid_size=30.0u"kpc",
+        bin_size=1.5u"kpc",
+        gas_weights=nothing,
+        post_processing=GalaxyInspector.ppBigiel2010!,
+        pp_kwargs=(; galaxy=:all, quantity=:atomic, color=Makie.wong_colors()[2]),
+        fit=false,
+        output_file=joinpath(figures_path, "_ks_law/bigiel2010_atomic.png"),
+        filter_mode=:subhalo,
+        sim_labels=[label],
+        theme=Theme(
+            Legend=(padding=(10, 0, 0, 20),),
+            Axis=(
+                limits=(6.0, 8.0, -4.5, 0.5),
+                xticks=6:0.5:8,
+                yticks=-4:1:0,
+            ),
+        ),
+    )
+
+    kennicuttSchmidtLaw(
+        [simulation_path],
+        n_last_snapshot;
+        quantity=:atomic_mass,
+        reduce_grid=:square,
+        grid_size=30.0u"kpc",
+        bin_size=1.5u"kpc",
+        gas_weights=nothing,
+        post_processing=GalaxyInspector.ppLeroy2008!,
+        pp_kwargs=(; quantity=:atomic, color=Makie.wong_colors()[2]),
+        fit=false,
+        output_file=joinpath(figures_path, "_ks_law/leroy2008_atomic.png"),
+        filter_mode=:subhalo,
+        sim_labels=[label],
+        theme=Theme(
+            Legend=(padding=(10, 0, 0, 20),),
+            Axis=(
+                limits=(6.0, 8.0, -4.5, 0.5),
+                xticks=6:0.5:8,
+                yticks=-4:1:0,
+            ),
+        ),
+    )
+
+    atomic_paths = [
+        joinpath(figures_path, "_ks_law/leroy2008_atomic.png"),
+        joinpath(figures_path, "_ks_law/bigiel2010_atomic.png"),
+    ]
+
+    GalaxyInspector.hvcatImages(
+        1,
+        atomic_paths;
+        output_path=joinpath(figures_path, "_ks_law/atomic.png"),
     )
 
     #################
@@ -852,19 +956,54 @@ function basic_analysis(
         bin_size=1.5u"kpc",
         gas_weights=nothing,
         post_processing=GalaxyInspector.ppBigiel2010!,
-        pp_kwargs=(; galaxy=:all, quantity=:neutral, color=Makie.wong_colors()[3]),
+        pp_kwargs=(; galaxy=:all, quantity=:neutral, color=Makie.wong_colors()[2]),
         fit=false,
-        output_file=joinpath(figures_path, "ks_law/neutral_gas.png"),
+        output_file=joinpath(figures_path, "_ks_law/bigiel2010_neutral.png"),
         filter_mode=:subhalo,
         sim_labels=[label],
         theme=Theme(
             Legend=(padding=(10, 0, 0, 20),),
             Axis=(
-                limits=(6.5, 9.1, -4.5, 1.5),
-                xticks=7:1:9,
-                yticks=-4:1:1,
+                limits=(6.5, 8.5, -4.5, 0.5),
+                xticks=7:1:8,
+                yticks=-4:1:0,
             ),
         ),
+    )
+
+    kennicuttSchmidtLaw(
+        [simulation_path],
+        n_last_snapshot;
+        quantity=:neutral_mass,
+        reduce_grid=:square,
+        grid_size=30.0u"kpc",
+        bin_size=1.5u"kpc",
+        gas_weights=nothing,
+        post_processing=GalaxyInspector.ppLeroy2008!,
+        pp_kwargs=(; quantity=:neutral, color=Makie.wong_colors()[2]),
+        fit=false,
+        output_file=joinpath(figures_path, "_ks_law/leroy2008_neutral.png"),
+        filter_mode=:subhalo,
+        sim_labels=[label],
+        theme=Theme(
+            Legend=(padding=(10, 0, 0, 20),),
+            Axis=(
+                limits=(6.5, 8.5, -4.5, 0.5),
+                xticks=7:1:8,
+                yticks=-4:1:0,
+            ),
+        ),
+    )
+
+    neutral_paths = [
+        joinpath(figures_path, "_ks_law/leroy2008_neutral.png"),
+        joinpath(figures_path, "_ks_law/bigiel2010_neutral.png"),
+    ]
+
+    GalaxyInspector.hvcatImages(
+        1,
+        neutral_paths;
+        output_path=joinpath(figures_path, "_ks_law/neutral.png"),
     )
 
     ###################
@@ -886,20 +1025,73 @@ function basic_analysis(
         bin_size=1.5u"kpc",
         gas_weights=nothing,
         post_processing=GalaxyInspector.ppBigiel2010!,
-        pp_kwargs=(; galaxy=:all, quantity=:neutral, color=Makie.wong_colors()[3]),
+        pp_kwargs=(; galaxy=:all, quantity=:neutral, color=Makie.wong_colors()[2]),
         fit=false,
-        output_file=joinpath(figures_path, "ks_law/total_gas.png"),
+        output_file=joinpath(figures_path, "_ks_law/bigiel2010_total.png"),
         filter_mode=:subhalo,
         sim_labels=[label],
         theme=Theme(
             Legend=(padding=(10, 0, 0, 20),),
             Axis=(
-                limits=(6.5, 9.1, -4.5, 1.5),
-                xticks=7:1:9,
-                yticks=-4:1:1,
+                limits=(6.8, 8.5, -4.5, 0.5),
+                xticks=7:1:8,
+                yticks=-4:1:0,
             ),
         ),
     )
+
+    kennicuttSchmidtLaw(
+        [simulation_path],
+        n_last_snapshot;
+        quantity=:gas_mass,
+        reduce_grid=:square,
+        grid_size=30.0u"kpc",
+        bin_size=1.5u"kpc",
+        gas_weights=nothing,
+        post_processing=GalaxyInspector.ppLeroy2008!,
+        pp_kwargs=(; quantity=:neutral, color=Makie.wong_colors()[2]),
+        fit=false,
+        output_file=joinpath(figures_path, "_ks_law/leroy2008_total.png"),
+        filter_mode=:subhalo,
+        sim_labels=[label],
+        theme=Theme(
+            Legend=(padding=(10, 0, 0, 20),),
+            Axis=(
+                limits=(6.8, 8.5, -4.5, 0.5),
+                xticks=7:1:8,
+                yticks=-4:1:0,
+            ),
+        ),
+    )
+
+    total_paths = [
+        joinpath(figures_path, "_ks_law/leroy2008_total.png"),
+        joinpath(figures_path, "_ks_law/bigiel2010_total.png"),
+    ]
+
+    GalaxyInspector.hvcatImages(
+        1,
+        total_paths;
+        output_path=joinpath(figures_path, "_ks_law/total.png"),
+    )
+
+    ###############################
+    # Final image with all KS laws
+    ###############################
+
+    gas_paths = joinpath.(
+        figures_path,
+        "_ks_law",
+        ["molecular.png", "atomic.png", "neutral.png", "total.png"],
+    )
+
+    GalaxyInspector.hvcatImages(
+        4,
+        gas_paths;
+        output_path=joinpath(figures_path, "ks_law.png"),
+    )
+
+    rm(joinpath(figures_path, "_ks_law"); recursive=true, force=true)
 
     if gas_evolution
 
@@ -1004,7 +1196,9 @@ function basic_analysis(
         # Starts at ~200 Myr to ignore initial very low fractions
         initial_snap = GalaxyInspector.findClosestSnapshot(simulation_path, 0.2u"Gyr")
 
-        with_theme(default_theme) do
+        current_theme = merge(Theme(palette=(linestyle=[:solid],),), default_theme)
+
+        with_theme(current_theme) do
 
             f = Figure(size=(880, 1200),)
 
@@ -1034,41 +1228,36 @@ function basic_analysis(
                     ax_1,
                     x_s[initial_snap:end], y_s[initial_snap:end];
                     color=Makie.wong_colors()[2],
-                    linestyle=:solid,
                     label="Stellar mass",
                 )
                 lines!(
                     ax_1,
                     x_h[initial_snap:end], y_h[initial_snap:end];
                     color=:black,
-                    linestyle=:solid,
                     label="Gas mass",
                 )
                 lines!(
                     ax_1,
                     x_i[initial_snap:end], y_i[initial_snap:end];
                     color=Makie.wong_colors()[1],
-                    linestyle=:solid,
                     label="Ionized mass",
                 )
                 lines!(
                     ax_1,
                     x_a[initial_snap:end], y_a[initial_snap:end];
                     color=Makie.wong_colors()[4],
-                    linestyle=:solid,
                     label="Atomic mass",
                 )
                 lines!(
                     ax_1,
                     x_m[initial_snap:end], y_m[initial_snap:end];
                     color=Makie.wong_colors()[3],
-                    linestyle=:solid,
                     label="Molecular mass",
                 )
 
             end
 
-            axislegend(ax_1, position=:rb, framevisible=false, nbanks=1, linestyle=:solid)
+            axislegend(ax_1, position=:rb, framevisible=false, nbanks=1)
 
             ax_2 = CairoMakie.Axis(
                 f[2, 1];
@@ -1090,21 +1279,18 @@ function basic_analysis(
                     x_i[initial_snap:end],
                     log10.(y_i[initial_snap:end]);
                     color=Makie.wong_colors()[1],
-                    linestyle=:solid,
                 )
                 lines!(
                     ax_2,
                     x_a[initial_snap:end],
                     log10.(y_a[initial_snap:end]);
                     color=Makie.wong_colors()[4],
-                    linestyle=:solid,
                 )
                 lines!(
                     ax_2,
                     x_m[initial_snap:end],
                     log10.(y_m[initial_snap:end]);
                     color=Makie.wong_colors()[3],
-                    linestyle=:solid,
                 )
 
             end
