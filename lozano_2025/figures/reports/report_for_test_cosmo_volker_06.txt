@@ -1,0 +1,90 @@
+####################################################################################################
+
+Simulation name:  test_cosmo_volker_06
+Cosmological:     Yes
+Report units:     Comoving
+
+####################################################################################################
+
+Number of snapshots:       128
+Number of group catalogs:  128
+
+Physical time range:       0.05 - 13.83 Gyr
+Scale factor range:        0.021 - 1.0
+Redshift range:            46.547 - 0.0
+
+####################################################################################################
+
+First snapshot with subfind information:
+
+	Snapshot:         snap_014.hdf5
+	Physical time:    0.14 Gyr
+	Scale factor:     0.04
+	Redshift:         23.961
+	Number of halos:  12
+
+	Main subhalo properties:
+
+		Center of mass:
+
+			[49.8329, 49.5991, 49.5628] Mpc
+
+		Position of the particle with the minimum gravitational potential energy: 
+
+			[49.8324, 49.6, 49.5628] Mpc
+
+		Separation between the minimum potencial and the global CM: 
+
+			1.03039 kpc
+
+		######################################################
+		NOTE: Stellar particle counts include wind particles!
+		######################################################
+
+		Cell/particle number:
+
+			Gas cells:              12
+			HR DM particles:        21
+			IR DM particles:        0
+			LR DM particles:        0
+			Stellar particles:      0
+			Black hole particles:   0
+			Tracer particles:       15
+
+####################################################################################################
+
+First snapshot with star formation:
+
+	Snapshot:         snap_021.hdf5
+	Physical time:    0.23 Gyr
+	Scale factor:     0.056
+	Redshift:         17.0
+	Number of stars:  1
+	Number of halos:  328
+
+	Main subhalo properties:
+
+		Number of stellar particles:  0
+
+		Center of mass:
+
+			[49.9677, 49.5651, 49.6721] Mpc
+
+		Position of the particle with the minimum gravitational potential energy: 
+
+			[49.968, 49.5656, 49.6679] Mpc
+
+		Separation between the minimum potencial and the global CM: 
+
+			4.18705 kpc
+
+####################################################################################################
+
+First snapshot with star formation in the main subhalo:
+
+	Snapshot:         snap_024.hdf5
+	Physical time:    0.28 Gyr
+	Scale factor:     0.064
+	Redshift:         14.689
+	Number of stars:  2
+

@@ -1,0 +1,423 @@
+####################################################################################################
+
+Simulation name:  test_cosmo_blitz_03
+Physical time:    13.83 Gyr
+Scale factor:     1.0
+Redshift:         0.0
+Cosmological:     Yes
+Report units:     Comoving
+
+####################################################################################################
+
+Snapshot number:  128 (of 128)
+Snapshot path:    F:\simulations\lozano_2025\test_cosmo_blitz_03\output\snap_127.hdf5
+
+Subfind number:   128 (of 128)
+Subfind path:     F:\simulations\lozano_2025\test_cosmo_blitz_03\output\fof_subhalo_tab_127.hdf5
+
+####################################################################################################
+
+Global properties (full simulation box):
+
+	Cell/particle number (full simulation box):
+
+		Gas cells:               11797502
+		HR DM particles:         10778149
+		Stellar particles:       1560543
+
+		Total count:             24136194
+
+	Masses (full simulation box):
+
+		Gas cells:               6.11e15 M⊙
+		HR DM particles:         3.14e12 M⊙
+		Stellar particles:       1.54e13 M⊙
+
+		Total mass:              6.12e15 M⊙
+
+	Hydrogen masses (full simulation box):
+
+		Ionized mass:            6.08e15 M⊙ (99.6% of total gas mass)
+		Atomic mass:             2.54e13 M⊙ (0.415% of total gas mass)
+		Molecular mass:          4.91e11 M⊙ (0.00803% of total gas mass)
+		Molecular mass (BR):     1.15e14 M⊙ (1.88% of total gas mass)
+		Neutral mass:            2.59e13 M⊙ (0.424% of total gas mass)
+
+####################################################################################################
+Filtered box with:
+
+	Filter mode: subhalo
+	Translation: (1, 1)
+	Rotation: stellar_pa
+####################################################################################################
+
+Global properties (filtered box):
+
+	Cell/particle number (filtered box):
+
+		Gas cells:               1537745
+		HR DM particles:         3108666
+		Stellar particles:       883213
+
+		Total count:             5529624
+
+	Masses (filtered box):
+
+		Gas cells:               9.26e10 M⊙
+		HR DM particles:         9.05e11 M⊙
+		Stellar particles:       3.39e10 M⊙
+
+		Total mass:              1.03e12 M⊙
+
+	Hydrogen masses (filtered box):
+
+		Ionized mass:            5.78e10 M⊙ (62.4% of total gas mass)
+		Atomic mass:             3.36e10 M⊙ (36.3% of total gas mass)
+		Molecular mass:          1.21e9 M⊙ (1.31% of total gas mass)
+		Molecular mass (BR):     5.19e9 M⊙ (5.6% of total gas mass)
+		Neutral mass:            3.48e10 M⊙ (37.6% of total gas mass)
+
+	Center of mass (filtered box):
+
+		Gas cells:               [56.5008, 49.4019, 49.6285] Mpc
+		Distance to global CM:   2.1641738094615692 kpc
+
+		HR DM particles:         [56.499, 49.4027, 49.6268] Mpc
+		Distance to global CM:   0.4062978408246612 kpc
+
+		Stellar particles:       [56.5045, 49.4001, 49.6272] Mpc
+		Distance to global CM:   5.676561439816189 kpc
+
+		Global center of mass:   [56.4993, 49.4025, 49.627] Mpc
+
+	Properties of the gas that has formed stars (filtered box):
+
+		Cell density:
+
+			Mean:    1268.0 cm^-3
+			Median:  63.74 cm^-3
+			Mode:    253.7 cm^-3
+			Minimum: 0.1921 cm^-3
+			Maximum: 214200.0 cm^-3
+
+			Cell density enclosing X% of the stellar mass:
+
+				64.62 cm^-3 (50%)
+				3594.0 cm^-3 (90%)
+				8237.0 cm^-3 (95%)
+
+		Metallicity:
+
+			Mean:    1.778 Z⊙
+			Median:  1.093 Z⊙
+			Mode:    0.0 Z⊙
+			Minimum: 0.0 Z⊙
+			Maximum: 16.44 Z⊙
+
+			Metallicity enclosing X% of the stellar mass:
+
+				1.135 Z⊙ (50%)
+				4.74 Z⊙ (90%)
+				6.86 Z⊙ (95%)
+
+		Parent gas mass:
+
+			Mean:    6.368 × 10⁴ M⊙
+			Median:  6.304 × 10⁴ M⊙
+			Mode:    5.394 × 10⁴ M⊙
+			Minimum: 2.023 × 10⁴ M⊙
+			Maximum: 10.79 × 10⁴ M⊙
+
+			Parent gas mass enclosing X% of the stellar mass:
+
+				6.541 × 10⁴ M⊙ (50%)
+				8.252 × 10⁴ M⊙ (90%)
+				8.753 × 10⁴ M⊙ (95%)
+
+		Parent SFR:
+
+			Mean:    7.695e-5 M⊙ yr^-1
+			Median:  4.55e-5 M⊙ yr^-1
+			Mode:    0.0001964 M⊙ yr^-1
+			Minimum: 1.092e-9 M⊙ yr^-1
+			Maximum: 0.001461 M⊙ yr^-1
+
+			Parent SFR enclosing X% of the stellar mass:
+
+				4.799e-5 M⊙ yr^-1 (50%)
+				0.0001995 M⊙ yr^-1 (90%)
+				0.0002557 M⊙ yr^-1 (95%)
+
+		Parent gas pressure:
+
+			Mean:    5.08e-9 dyn cm^-2
+			Median:  8.211e-10 dyn cm^-2
+			Mode:    1.213e-8 dyn cm^-2
+			Minimum: 2.377e-15 dyn cm^-2
+			Maximum: 4.161e-7 dyn cm^-2
+
+			Parent gas pressure enclosing X% of the stellar mass:
+
+				8.435e-10 dyn cm^-2 (50%)
+				1.569e-8 dyn cm^-2 (90%)
+				2.368e-8 dyn cm^-2 (95%)
+
+	Normalized angular momentum (filtered box):
+
+		Gas cells:               [-0.11, 0.513, 0.851]
+		HR DM particles:         [-0.126, 0.252, 0.96]
+		Stellar particles:       [0.213, 0.573, 0.791]
+
+		Global angular momentum: [-0.121, 0.306, 0.944]
+
+	Spin parameter (R = 40.0 kpc - filtered box):
+
+		Gas cells:               0.917
+		HR DM particles:         0.0422
+		Stellar particles:       0.123
+
+		Total spin parameter:    0.0773
+
+	Total height of a cylinder, of infinite radius, containing X% of the stellar mass (filtered box):
+
+		2.525 kpc (90%)
+		5.101 kpc (95%)
+
+####################################################################################################
+
+Fraction of insitu stars (filtered box): 89.0%
+
+Characteristic radii (filtered box):
+
+	Radius containing X% of the stellar mass (r < 40.0 kpc):
+
+		10.41 kpc (90%)
+		14.37 kpc (95%)
+
+	Radius containing X% of the total gas mass (r < 40.0 kpc):
+
+		32.7 kpc (90%)
+		35.88 kpc (95%)
+
+	Radius containing X% of the ionized gas mass (r < 40.0 kpc):
+
+		33.16 kpc (90%)
+		36.77 kpc (95%)
+
+	Radius containing X% of the atomic gas mass (r < 40.0 kpc):
+
+		32.72 kpc (90%)
+		35.53 kpc (95%)
+
+	Radius containing X% of the molecular gas mass (r < 40.0 kpc):
+
+		24.72 kpc (90%)
+		27.36 kpc (95%)
+
+	Radius containing X% of the molecular gas mass (BR) (r < 40.0 kpc):
+
+		19.78 kpc (90%)
+		22.72 kpc (95%)
+
+	Radius containing X% of the neutral gas mass (r < 40.0 kpc):
+
+		32.55 kpc (90%)
+		35.42 kpc (95%)
+
+####################################################################################################
+
+Characteristic fractions and masses (filtered box):
+
+	####################
+	R200: 215.2 kpc
+	####################
+
+	########################################
+	Stars:
+	########################################
+
+	Stellar mass inside the disc (r < 40.0 kpc):
+
+		3.37e10 M⊙ (99.3% of the total stellar mass)
+
+	Stellar mass outside the disc (40.0 kpc < r < R200):
+
+		2.24e8 M⊙ (0.66% of the total stellar mass)
+
+	########################################
+	Total gas:
+	########################################
+
+	Gas mass inside the disc (r < 40.0 kpc):
+
+		4.99e10 M⊙ (56.3% of the gas mass)
+
+	Gas mass outside the disc (40.0 kpc < r < R200):
+
+		3.87e10 M⊙ (43.7% of the gas mass)
+
+	########################################
+	Ionized gas:
+	########################################
+
+	Ionized mass inside the disc (r < 40.0 kpc):
+
+		1.71e10 M⊙ (34.3% of the gas mass)
+
+	Ionized mass outside the disc (40.0 kpc < r < R200):
+
+		3.66e10 M⊙ (94.6% of the gas mass)
+
+	########################################
+	Neutral gas:
+	########################################
+
+	Neutral mass inside the disc (r < 40.0 kpc):
+
+		3.28e10 M⊙ (65.7% of the gas mass)
+
+	Neutral mass outside the disc (40.0 kpc < r < R200):
+
+		2.07e9 M⊙ (5.35% of the gas mass)
+
+	########################################
+	Atomic gas:
+	########################################
+
+	Atomic mass inside the disc (r < 40.0 kpc):
+
+		3.16e10 M⊙ (63.3% of the gas mass)
+
+	Atomic mass outside the disc (40.0 kpc < r < R200):
+
+		2.07e9 M⊙ (5.34% of the gas mass)
+
+	########################################
+	Molecular gas:
+	########################################
+
+	Molecular mass inside the disc (r < 40.0 kpc):
+
+		1.21e9 M⊙ (2.42% of the gas mass)
+
+	Molecular mass outside the disc (40.0 kpc < r < R200):
+
+		4.94e6 M⊙ (0.0128% of the gas mass)
+
+	########################################
+	Molecular gas (BR recipe):
+	########################################
+
+	Molecular mass (BR recipe) inside the disc (r < 40.0 kpc):
+
+		5.07e9 M⊙ (10.2% of the gas mass)
+
+	Molecular mass (BR recipe) outside the disc (40.0 kpc < r < R200):
+
+		1.14e8 M⊙ (0.294% of the gas mass)
+
+####################################################################################################
+
+Halo and subhalo global properties:
+
+#######################################################################
+NOTE: Stellar particle counts include wind particles from here on out!
+#######################################################################
+
+Halo 000 properties:
+
+	Cell/particle number (in halo 000):
+
+		Gas cells:              1767324
+		HR DM particles:        3409150
+		IR DM particles:        0
+		LR DM particles:        0
+		Stellar particles:      950115
+		Black hole particles:   0
+		Tracer particles:       2660444
+
+	Number of subhalos (in halo 000):
+
+		473
+
+	Masses (in halo 000):
+
+		Gas cells:              1.08e11 M⊙
+		HR DM particles:        9.92e11 M⊙
+		IR DM particles:        0.0 M⊙
+		LR DM particles:        0.0 M⊙
+		Stellar/Wind particles: 3.6e10 M⊙
+		Black hole particles:   0.0 M⊙
+		Tracer particles:       53900.0 M⊙
+
+		Total mass:             1.14e12 M⊙
+
+	Center of mass (in halo 000): 
+
+		[56.4952, 49.4083, 49.6225] Mpc
+
+	Position of the particle with the minimum gravitational potential energy (in halo 000): 
+
+		[56.5046, 49.4002, 49.6272] Mpc
+
+	Separation between the minimum potencial and the global CM (in halo 000): 
+
+		13.2105 kpc
+
+	Velocity of the center of mass (in halo 000):
+
+		[250.127, 0.483445, -12.4849] km s^-1
+
+	Total mass enclosed in a sphere with a mean density 200 times the critical density (in halo 000): 
+
+		1.06e12 M⊙
+
+	Radius of a sphere with a mean density 200 times the critical density (in halo 000): 
+
+		215.2 kpc
+
+####################################################################################################
+
+Subhalo 000 (of halo 000) properties:
+
+	Cell/particle number (in subhalo 000):
+
+		Gas cells:              1537745
+		HR DM particles:        3108666
+		IR DM particles:        0
+		LR DM particles:        0
+		Stellar particles:      885446
+		Black hole particles:   0
+		Tracer particles:       2348139
+
+	Masses (in subhalo 000):
+
+		Gas cells:              9.27e10 M⊙
+		HR DM particles:        9.05e11 M⊙
+		IR DM particles:        0.0 M⊙
+		LR DM particles:        0.0 M⊙
+		Stellar/Wind particles: 3.39e10 M⊙
+		Black hole particles:   0.0 M⊙
+		Tracer particles:       53900.0 M⊙
+
+		Total mass:             1.03e12 M⊙
+
+	Center of mass (in subhalo 000): 
+
+		[56.4993, 49.4025, 49.627] Mpc
+
+	Position of the particle with the minimum gravitational potential energy (in subhalo 000): 
+
+		[56.5046, 49.4002, 49.6272] Mpc
+
+	Separation between the minimum potencial and the global CM (in subhalo 000): 
+
+		5.7429 kpc
+
+	Velocity of the center of mass (in subhalo 000): 
+
+		[258.806, 2.7004, -11.4857] km s^-1
+
+	Radius containing half of the total mass (in subhalo 000): 
+
+		65.03 kpc

@@ -1,0 +1,100 @@
+┌ Info | 
+│ Density range - log₁₀(ρ [M⊙ kpc^-2]) 
+│   Simulation: Au6_MOL_test18 
+│   Snapshot:   128 
+│   Quantity:   stellar_mass 
+│   Field type: particles 
+│   Plane:      xy 
+│   Min - Max:  (5.681044723712973, 10.348579126078896) 
+│   Mean:       6.78163517178537 
+│   Median:     6.6808497574687475 
+│   Mode:       6.030270909440325
+└ @ d:\documents\phd\gfp\plots\proceeding_AAA_2024\GalaxyInspector\src\analysis\data_analysis.jl:1549
+
+┌ Info | 
+│ Density range - log₁₀(ρ [M⊙ kpc^-2]) 
+│   Simulation: Au6_MOL_test18 
+│   Snapshot:   128 
+│   Quantity:   stellar_mass 
+│   Field type: particles 
+│   Plane:      xz 
+│   Min - Max:  (5.681044723712973, 10.438372204435598) 
+│   Mean:       6.531957364585515 
+│   Median:     6.234670131904101 
+│   Mode:       6.0322089964339
+└ @ d:\documents\phd\gfp\plots\proceeding_AAA_2024\GalaxyInspector\src\analysis\data_analysis.jl:1549
+
+┌ Info | 
+│ Density range - log₁₀(ρ [M⊙ kpc^-2]) 
+│   Simulation: test_cosmo_volker_06 
+│   Snapshot:   128 
+│   Quantity:   stellar_mass 
+│   Field type: particles 
+│   Plane:      xy 
+│   Min - Max:  (5.421682774118, 10.09646587331907) 
+│   Mean:       6.811467169560548 
+│   Median:     6.71891884909758 
+│   Mode:       6.076159846664376
+└ @ d:\documents\phd\gfp\plots\proceeding_AAA_2024\GalaxyInspector\src\analysis\data_analysis.jl:1549
+
+┌ Info | 
+│ Density range - log₁₀(ρ [M⊙ kpc^-2]) 
+│   Simulation: test_cosmo_volker_06 
+│   Snapshot:   128 
+│   Quantity:   stellar_mass 
+│   Field type: particles 
+│   Plane:      xz 
+│   Min - Max:  (5.2390577529863664, 10.188958788583758) 
+│   Mean:       6.5519316782974695 
+│   Median:     6.308116575611153 
+│   Mode:       6.141226221792117
+└ @ d:\documents\phd\gfp\plots\proceeding_AAA_2024\GalaxyInspector\src\analysis\data_analysis.jl:1549
+
+┌ Warning | readSnapBlocks: The block FRAC for the cell/particle type :gas in F:\simulations\lozano_2025\test_cosmo_volker_06\output\snap_127.hdf5 is missing
+└ @ d:\documents\phd\gfp\plots\proceeding_AAA_2024\GalaxyInspector\src\analysis\data_acquisition.jl:696
+
+┌ Warning | readSnapBlocks: The block TAUS for the cell/particle type :gas in F:\simulations\lozano_2025\test_cosmo_volker_06\output\snap_127.hdf5 is missing
+└ @ d:\documents\phd\gfp\plots\proceeding_AAA_2024\GalaxyInspector\src\analysis\data_acquisition.jl:696
+
+┌ Warning | readSnapBlocks: The block FRAC for the cell/particle type :gas in F:\simulations\lozano_2025\test_cosmo_volker_06\output\snap_127.hdf5 is missing
+└ @ d:\documents\phd\gfp\plots\proceeding_AAA_2024\GalaxyInspector\src\analysis\data_acquisition.jl:696
+
+┌ Warning | readSnapBlocks: The block TAUS for the cell/particle type :gas in F:\simulations\lozano_2025\test_cosmo_volker_06\output\snap_127.hdf5 is missing
+└ @ d:\documents\phd\gfp\plots\proceeding_AAA_2024\GalaxyInspector\src\analysis\data_acquisition.jl:696
+
+┌ Info | computeFraction: The ionized fraction will be calculated using the fractions from our SF model
+└ @ d:\documents\phd\gfp\plots\proceeding_AAA_2024\GalaxyInspector\src\analysis\compute_quantities\masses.jl:225
+
+┌ Info | computeFraction: The ionized fraction will be calculated using the fractions from our SF model
+└ @ d:\documents\phd\gfp\plots\proceeding_AAA_2024\GalaxyInspector\src\analysis\compute_quantities\masses.jl:225
+
+┌ Info | computeFraction: The neutral fraction will be calculated using the fractions from out SF model
+└ @ d:\documents\phd\gfp\plots\proceeding_AAA_2024\GalaxyInspector\src\analysis\compute_quantities\masses.jl:279
+
+┌ Info | computeFraction: The neutral fraction will be calculated using the fractions from out SF model
+└ @ d:\documents\phd\gfp\plots\proceeding_AAA_2024\GalaxyInspector\src\analysis\compute_quantities\masses.jl:279
+
+┌ Warning | readSnapBlocks: The block FRAC for the cell/particle type :gas in F:\simulations\lozano_2025\test_cosmo_volker_06\output\snap_127.hdf5 is missing
+└ @ d:\documents\phd\gfp\plots\proceeding_AAA_2024\GalaxyInspector\src\analysis\data_acquisition.jl:696
+
+┌ Warning | readSnapBlocks: The block TAUS for the cell/particle type :gas in F:\simulations\lozano_2025\test_cosmo_volker_06\output\snap_127.hdf5 is missing
+└ @ d:\documents\phd\gfp\plots\proceeding_AAA_2024\GalaxyInspector\src\analysis\data_acquisition.jl:696
+
+┌ Info | computeFraction: The ionized fraction will be calculated using the fraction of ionized gas from Arepo
+└ @ d:\documents\phd\gfp\plots\proceeding_AAA_2024\GalaxyInspector\src\analysis\compute_quantities\masses.jl:252
+
+┌ Info | computeFraction: The ionized fraction will be calculated using the fraction of ionized gas from Arepo
+└ @ d:\documents\phd\gfp\plots\proceeding_AAA_2024\GalaxyInspector\src\analysis\compute_quantities\masses.jl:252
+
+┌ Warning | readSnapBlocks: The block FRAC for the cell/particle type :gas in F:\simulations\lozano_2025\test_cosmo_volker_06\output\snap_127.hdf5 is missing
+└ @ d:\documents\phd\gfp\plots\proceeding_AAA_2024\GalaxyInspector\src\analysis\data_acquisition.jl:696
+
+┌ Warning | readSnapBlocks: The block TAUS for the cell/particle type :gas in F:\simulations\lozano_2025\test_cosmo_volker_06\output\snap_127.hdf5 is missing
+└ @ d:\documents\phd\gfp\plots\proceeding_AAA_2024\GalaxyInspector\src\analysis\data_acquisition.jl:696
+
+┌ Info | computeFraction: The neutral fraction will be calculated using the fraction of neutral gas from Arepo
+└ @ d:\documents\phd\gfp\plots\proceeding_AAA_2024\GalaxyInspector\src\analysis\compute_quantities\masses.jl:313
+
+┌ Info | computeFraction: The neutral fraction will be calculated using the fraction of neutral gas from Arepo
+└ @ d:\documents\phd\gfp\plots\proceeding_AAA_2024\GalaxyInspector\src\analysis\compute_quantities\masses.jl:313
+

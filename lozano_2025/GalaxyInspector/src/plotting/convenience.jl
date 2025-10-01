@@ -7013,8 +7013,8 @@ function kennicuttSchmidtLaw(
     # Default values
     ################################################################################################
 
-    # Default high resolution voxel side length
-    voxel_size = 150.0u"pc"
+    # Default voxel side length
+    voxel_size = 200.0u"pc"
 
     # Default units for the gas surface density
     Σg_m_unit = u"Msun"

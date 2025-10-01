@@ -1,6 +1,4 @@
 tests
 equilibrium
-*/*reports*
-*/*figures*
+basic_analysis/_bak
 */comparison
-*/_bak

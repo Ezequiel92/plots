@@ -35,25 +35,20 @@ using GalaxyInspector
 function basic_analysis(
     simulation_path::String,
     base_out_path::String,
-    logging::Bool,
-    r1::Unitful.Length,
-    r2::Unitful.Length,
-    r3::Unitful.Length;
-    gas_evolution::Bool=false,
-    label::String=basename(simulation_path),
+    logging::Bool;
+    label::AbstractString=basename(simulation_path),
 )::Nothing
 
     ################################################################################################
     # Preparations and checks
     ################################################################################################
 
-    # Create the output folders
-    figures_path = mkpath(joinpath(base_out_path, "$(basename(simulation_path))_figures"))
-    report_path  = mkpath(joinpath(base_out_path, "$(basename(simulation_path))_reports"))
+    # Create the output folder
+    output_path = mkpath(joinpath(base_out_path, "$(basename(simulation_path))"))
 
     # Activate logging
     if logging
-        log_file = open(joinpath(report_path, "logs.txt"), "w+")
+        log_file = open(joinpath(output_path, "logs.txt"), "w+")
         GalaxyInspector.setLogging!(logging; stream=log_file)
     end
 
@@ -71,13 +66,20 @@ function basic_analysis(
     # Check if the simulation is cosmological
     cosmological = GalaxyInspector.isSimCosmological(simulation_path)
     if cosmological
-        filter_mode = :subhalo
+        filter_mode  = :subhalo
+        extra_filter = dd -> GalaxyInspector.filterWithinSphere(dd, (0.0u"kpc", R1), :zero)
     else
-        filter_mode = :all_stellar
+        filter_mode  = :all
+        extra_filter = GalaxyInspector.filterNothing
     end
 
     # Set default theme
     default_theme = merge(GalaxyInspector.DEFAULT_THEME, theme_latexfonts())
+
+    # Characteristic radii
+    R1 = 40.0u"kpc"
+    R2 = 2.0u"kpc"
+    R3 = 65.0u"kpc"
 
     # ################################################################################################
     # # Report files
@@ -89,15 +91,70 @@ function basic_analysis(
     #     println(log_file, "#"^100, "\n")
     # end
 
-    # simulationReport([simulation_path]; output_path=report_path)
+    # simulationReport([simulation_path]; output_path)
 
     # snapshotReport(
     #     [simulation_path],
     #     [n_snapshots];
-    #     output_path=report_path,
+    #     output_path,
     #     filter_mode,
     #     halo_idx=1,
     #     subhalo_rel_idx=1,
+    # )
+
+    # ################################################################################################
+    # # SFR vs. physical time
+    # ################################################################################################
+
+    # if logging
+    #     println(log_file, "#"^100)
+    #     println(log_file, "# SFR vs. physical time")
+    #     println(log_file, "#"^100, "\n")
+    # end
+
+    # timeSeries(
+    #     [simulation_path],
+    #     :physical_time,
+    #     :sfr;
+    #     y_log=false,
+    #     cumulative=false,
+    #     fraction=false,
+    #     output_path,
+    #     filter_mode,
+    #     smooth=n_snapshots ÷ 5,
+    #     sim_labels=nothing,
+    #     theme=Theme(
+    #         palette=(color=[Makie.wong_colors()[2]],),
+    #         size=(1320, 880),
+    #         Axis=(aspect=nothing,),
+    #     ),
+    # )
+
+    # ################################################################################################
+    # # Stellar mass vs. physical time
+    # ################################################################################################
+
+    # if logging
+    #     println(log_file, "#"^100)
+    #     println(log_file, "# Stellar mass vs. physical time")
+    #     println(log_file, "#"^100, "\n")
+    # end
+
+    # timeSeries(
+    #     [simulation_path],
+    #     :physical_time,
+    #     :stellar_mass;
+    #     y_log=false,
+    #     cumulative=false,
+    #     fraction=false,
+    #     output_path,
+    #     filter_mode,
+    #     sim_labels=nothing,
+    #     theme=Theme(
+    #         palette=(color=[Makie.wong_colors()[2]],),
+    #         size=(1320, 880),
+    #         Axis=(aspect=nothing,),
+    #     ),
     # )
 
     # ################################################################################################
@@ -115,7 +172,7 @@ function basic_analysis(
     # end
 
     # filter_function, translation, rotation, request = GalaxyInspector.selectFilter(
-    #     filter_mode,
+    #     cosmological ? :subhalo : :all_stellar,
     #     GalaxyInspector.plotParams(:stellar_mass).request,
     # )
 
@@ -127,7 +184,7 @@ function basic_analysis(
     #     [simulation_path],
     #     request,
     #     [lines!];
-    #     output_path=figures_path,
+    #     output_path,
     #     base_filename="stellar_mass_density",
     #     slice=n_snapshots,
     #     filter_function,
@@ -161,54 +218,6 @@ function basic_analysis(
     # )
 
     # ################################################################################################
-    # # SFR vs. physical time
-    # ################################################################################################
-
-    # if logging
-    #     println(log_file, "#"^100)
-    #     println(log_file, "# SFR vs. physical time")
-    #     println(log_file, "#"^100, "\n")
-    # end
-
-    # timeSeries(
-    #     [simulation_path],
-    #     :physical_time,
-    #     :sfr;
-    #     y_log=true,
-    #     cumulative=false,
-    #     fraction=false,
-    #     slice=(:),
-    #     output_path=figures_path,
-    #     filter_mode,
-    #     sim_labels=nothing,
-    #     theme=Theme(palette=(color=[Makie.wong_colors()[2]],),),
-    # )
-
-    # ################################################################################################
-    # # Stellar mass vs. physical time
-    # ################################################################################################
-
-    # if logging
-    #     println(log_file, "#"^100)
-    #     println(log_file, "# Stellar mass vs. physical time")
-    #     println(log_file, "#"^100, "\n")
-    # end
-
-    # timeSeries(
-    #     [simulation_path],
-    #     :physical_time,
-    #     :stellar_mass;
-    #     y_log=true,
-    #     cumulative=false,
-    #     fraction=false,
-    #     slice=(:),
-    #     output_path=figures_path,
-    #     filter_mode,
-    #     sim_labels=nothing,
-    #     theme=Theme(palette=(color=[Makie.wong_colors()[2]],),),
-    # )
-
-    # ################################################################################################
     # # Circularity histogram of the last snapshot, radio separated
     # ################################################################################################
 
@@ -226,19 +235,19 @@ function basic_analysis(
     # grid = GalaxyInspector.LinearGrid(-2.0, 2.0, 200)
 
     # da_ff = [
-    #     dd -> GalaxyInspector.filterWithinSphere(dd, (0.0u"kpc", r1), :zero),
-    #     dd -> GalaxyInspector.filterWithinSphere(dd, (0.0u"kpc", r2), :zero),
-    #     dd -> GalaxyInspector.filterWithinSphere(dd, (r2, r1), :zero),
+    #     dd -> GalaxyInspector.filterWithinSphere(dd, (0.0u"kpc", R1), :zero),
+    #     dd -> GalaxyInspector.filterWithinSphere(dd, (0.0u"kpc", R2), :zero),
+    #     dd -> GalaxyInspector.filterWithinSphere(dd, (R2, R1), :zero),
     # ]
 
-    # r1_label = string(round(Int, ustrip(u"kpc", r1)))
-    # r2_label = string(round(Int, ustrip(u"kpc", r2)))
+    # R1_label = string(round(Int, ustrip(u"kpc", R1)))
+    # R2_label = string(round(Int, ustrip(u"kpc", R2)))
 
     # plotSnapshot(
     #     [simulation_path, simulation_path, simulation_path],
     #     request,
     #     [lines!];
-    #     output_path=figures_path,
+    #     output_path,
     #     base_filename="circularity_histogram",
     #     slice=n_snapshots,
     #     filter_function,
@@ -273,9 +282,9 @@ function basic_analysis(
     #         ),
     #     ),
     #     sim_labels=[
-    #         L"r \,\, \le \,\, %$(r1_label) \, \mathrm{kpc}",
-    #         L"r \,\, \le \,\, %$(r2_label) \, \mathrm{kpc}",
-    #         L"%$(r2_label) \, \mathrm{kpc} \,\, < \,\, r \,\, \le \,\, %$(r1_label) \, \mathrm{kpc}",
+    #         L"r \,\, \le \,\, %$(R1_label) \, \mathrm{kpc}",
+    #         L"r \,\, \le \,\, %$(R2_label) \, \mathrm{kpc}",
+    #         L"%$(R2_label) \, \mathrm{kpc} \,\, < \,\, r \,\, \le \,\, %$(R1_label) \, \mathrm{kpc}",
     #     ],
     # )
 
@@ -307,20 +316,13 @@ function basic_analysis(
     #     [simulation_path, simulation_path],
     #     request,
     #     [lines!];
-    #     output_path=figures_path,
+    #     output_path,
     #     base_filename="stellar_eff_histogram_all_stars",
     #     slice=n_snapshots,
     #     filter_function,
     #     da_functions=[GalaxyInspector.daLineHistogram, GalaxyInspector.daLineHistogram],
     #     da_args=[(:stellar_eff, grid, :stellar), (:gas_eff, grid, :gas)],
-    #     da_kwargs=[
-    #         (;
-    #             filter_function=dd -> GalaxyInspector.intersectFilters(
-    #                 GalaxyInspector.filterWithinSphere(dd, (0.0u"kpc", r1), :zero),
-    #             ),
-    #             norm=0,
-    #         )
-    #     ],
+    #     da_kwargs=[(; norm=0)],
     #     transform_box=true,
     #     translation,
     #     rotation,
@@ -342,21 +344,13 @@ function basic_analysis(
     #     request,
     #     [lines!];
     #     pf_kwargs=[(;)],
-    #     output_path=figures_path,
+    #     output_path,
     #     base_filename="stellar_eff_histogram_young_stars",
     #     slice=n_snapshots,
     #     filter_function,
     #     da_functions=[GalaxyInspector.daLineHistogram, GalaxyInspector.daLineHistogram],
     #     da_args=[(:stellar_eff, grid, :stellar), (:gas_eff, grid, :gas)],
-    #     da_kwargs=[
-    #         (;
-    #             filter_function=dd -> GalaxyInspector.intersectFilters(
-    #                 GalaxyInspector.filterWithinSphere(dd, (0.0u"kpc", r1), :zero),
-    #                 GalaxyInspector.filterOldStars(dd),
-    #             ),
-    #             norm=0,
-    #         )
-    #     ],
+    #     da_kwargs=[(; filter_function=GalaxyInspector.filterByStellarAge, norm=0)],
     #     transform_box=true,
     #     translation,
     #     rotation,
@@ -373,45 +367,46 @@ function basic_analysis(
     #     sim_labels=["Young stars", "Gas"],
     # )
 
-    ################################################################################################
-    # Profiles for the last snapshot, comparison with Mollá et al. (2015)
-    ################################################################################################
+    # ################################################################################################
+    # # Profiles for the last snapshot, comparison with Mollá et al. (2015)
+    # ################################################################################################
 
-    for quantity in [
-        # :stellar_area_density,
-        :molecular_area_density,
-        :sfr_area_density,
-        :atomic_area_density,
-        # :O_stellar_abundance,
-        # :N_stellar_abundance,
-        # :C_stellar_abundance,
-    ]
+    # for quantity in [
+    #     :stellar_area_density,
+    #     :molecular_area_density,
+    #     :sfr_area_density,
+    #     :atomic_area_density,
+    #     :O_stellar_abundance,
+    #     :N_stellar_abundance,
+    #     :C_stellar_abundance,
+    # ]
 
-        if logging
-            println(log_file, "#"^100)
-            println(
-                log_file,
-                "# $(quantity) profile for the last snapshot, comparison with Mollá et al. (2015)",
-            )
-            println(log_file, "#"^100, "\n")
-        end
+    #     if logging
+    #         println(log_file, "#"^100)
+    #         println(
+    #             log_file,
+    #             "# $(quantity) profile for the last snapshot, comparison with Mollá et al. (2015)",
+    #         )
+    #         println(log_file, "#"^100, "\n")
+    #     end
 
-        compareMolla2015(
-            [simulation_path],
-            n_snapshots,
-            quantity;
-            output_path=joinpath(figures_path, "Molla2015"),
-            filter_mode,
-            sim_labels=[label],
-            theme=Theme(
-                size=(1500, 880),
-                palette=(linestyle=[:solid],),
-                Axis=(aspect=nothing,),
-                Legend=(halign=:right, valign=:top),
-            ),
-        )
+    #     compareMolla2015(
+    #         [simulation_path],
+    #         n_snapshots,
+    #         quantity;
+    #         output_path=joinpath(output_path, "Molla2015"),
+    #         filter_mode=cosmological ? :subhalo : :all_stellar,
+    #         sim_labels=[label],
+    #         theme=Theme(
+    #             size=(1500, 880),
+    #             figure_padding=(10, 15, 5, 15),
+    #             palette=(linestyle=[:solid],),
+    #             Axis=(aspect=nothing,),
+    #             Legend=(halign=:right, valign=:top, nbanks=1),
+    #         ),
+    #     )
 
-    end
+    # end
 
     # ################################################################################################
     # # Resolved Kennicutt–Schmidt law of the last snapshot, scatter with square grid
@@ -447,14 +442,14 @@ function basic_analysis(
     #     post_processing=GalaxyInspector.ppSun2023!,
     #     pp_kwargs=(; color=Makie.wong_colors()[2]),
     #     fit=true,
-    #     output_file=joinpath(figures_path, "_ks_law/sun2023_molecular.png"),
+    #     output_file=joinpath(output_path, "_ks_law/sun2023_molecular.png"),
     #     filter_mode,
     #     sim_labels=[label],
     #     theme=Theme(
     #         Legend=(padding=(10, 0, 0, 0),),
     #         Axis=(
-    #             limits=(3.5, 8.5, -4.5, 0.5),
-    #             xticks=4:1:8,
+    #             limits=(4.5, 9.5, -4.5, 0.5),
+    #             xticks=5:1:9,
     #             yticks=-4:1:0,
     #         ),
     #     ),
@@ -471,28 +466,28 @@ function basic_analysis(
     #     post_processing=GalaxyInspector.ppLeroy2008!,
     #     pp_kwargs=(; color=Makie.wong_colors()[2]),
     #     fit=true,
-    #     output_file=joinpath(figures_path, "_ks_law/leroy2008_molecular.png"),
+    #     output_file=joinpath(output_path, "_ks_law/leroy2008_molecular.png"),
     #     filter_mode,
     #     sim_labels=[label],
     #     theme=Theme(
     #         Legend=(padding=(10, 0, 0, 0),),
     #         Axis=(
-    #             limits=(3.5, 8.5, -4.5, 0.5),
-    #             xticks=4:1:8,
+    #             limits=(4.5, 9.5, -4.5, 0.5),
+    #             xticks=5:1:9,
     #             yticks=-4:1:0,
     #         ),
     #     ),
     # )
 
     # molecular_paths = [
-    #     joinpath(figures_path, "_ks_law/leroy2008_molecular.png"),
-    #     joinpath(figures_path, "_ks_law/sun2023_molecular.png"),
+    #     joinpath(output_path, "_ks_law/leroy2008_molecular.png"),
+    #     joinpath(output_path, "_ks_law/sun2023_molecular.png"),
     # ]
 
     # GalaxyInspector.hvcatImages(
     #     1,
     #     molecular_paths;
-    #     output_path=joinpath(figures_path, "_ks_law/molecular.png"),
+    #     output_path=joinpath(output_path, "_ks_law/molecular.png"),
     # )
 
     # ################
@@ -516,13 +511,13 @@ function basic_analysis(
     #     post_processing=GalaxyInspector.ppBigiel2010!,
     #     pp_kwargs=(; galaxy=:all, quantity=:atomic, color=Makie.wong_colors()[2]),
     #     fit=false,
-    #     output_file=joinpath(figures_path, "_ks_law/bigiel2010_atomic.png"),
+    #     output_file=joinpath(output_path, "_ks_law/bigiel2010_atomic.png"),
     #     filter_mode,
     #     sim_labels=[label],
     #     theme=Theme(
     #         Legend=(padding=(10, 0, 0, 20),),
     #         Axis=(
-    #             limits=(6.0, 8.0, -4.5, 0.5),
+    #             limits=(5.8, 8.2, -4.5, 0.5),
     #             xticks=6:0.5:8,
     #             yticks=-4:1:0,
     #         ),
@@ -540,13 +535,13 @@ function basic_analysis(
     #     post_processing=GalaxyInspector.ppLeroy2008!,
     #     pp_kwargs=(; quantity=:atomic, color=Makie.wong_colors()[2]),
     #     fit=false,
-    #     output_file=joinpath(figures_path, "_ks_law/leroy2008_atomic.png"),
+    #     output_file=joinpath(output_path, "_ks_law/leroy2008_atomic.png"),
     #     filter_mode,
     #     sim_labels=[label],
     #     theme=Theme(
     #         Legend=(padding=(10, 0, 0, 20),),
     #         Axis=(
-    #             limits=(6.0, 8.0, -4.5, 0.5),
+    #             limits=(5.8, 8.2, -4.5, 0.5),
     #             xticks=6:0.5:8,
     #             yticks=-4:1:0,
     #         ),
@@ -554,14 +549,14 @@ function basic_analysis(
     # )
 
     # atomic_paths = [
-    #     joinpath(figures_path, "_ks_law/leroy2008_atomic.png"),
-    #     joinpath(figures_path, "_ks_law/bigiel2010_atomic.png"),
+    #     joinpath(output_path, "_ks_law/leroy2008_atomic.png"),
+    #     joinpath(output_path, "_ks_law/bigiel2010_atomic.png"),
     # ]
 
     # GalaxyInspector.hvcatImages(
     #     1,
     #     atomic_paths;
-    #     output_path=joinpath(figures_path, "_ks_law/atomic.png"),
+    #     output_path=joinpath(output_path, "_ks_law/atomic.png"),
     # )
 
     # #################
@@ -585,14 +580,14 @@ function basic_analysis(
     #     post_processing=GalaxyInspector.ppBigiel2010!,
     #     pp_kwargs=(; galaxy=:all, quantity=:neutral, color=Makie.wong_colors()[2]),
     #     fit=false,
-    #     output_file=joinpath(figures_path, "_ks_law/bigiel2010_neutral.png"),
+    #     output_file=joinpath(output_path, "_ks_law/bigiel2010_neutral.png"),
     #     filter_mode,
     #     sim_labels=[label],
     #     theme=Theme(
     #         Legend=(padding=(10, 0, 0, 20),),
     #         Axis=(
-    #             limits=(6.5, 8.5, -4.5, 0.5),
-    #             xticks=7:1:8,
+    #             limits=(6.4, 8.6, -4.5, 0.5),
+    #             xticks=6.5:0.5:8.5,
     #             yticks=-4:1:0,
     #         ),
     #     ),
@@ -609,28 +604,28 @@ function basic_analysis(
     #     post_processing=GalaxyInspector.ppLeroy2008!,
     #     pp_kwargs=(; quantity=:neutral, color=Makie.wong_colors()[2]),
     #     fit=false,
-    #     output_file=joinpath(figures_path, "_ks_law/leroy2008_neutral.png"),
+    #     output_file=joinpath(output_path, "_ks_law/leroy2008_neutral.png"),
     #     filter_mode,
     #     sim_labels=[label],
     #     theme=Theme(
     #         Legend=(padding=(10, 0, 0, 20),),
     #         Axis=(
-    #             limits=(6.5, 8.5, -4.5, 0.5),
-    #             xticks=7:1:8,
+    #             limits=(6.4, 8.6, -4.5, 0.5),
+    #             xticks=6.5:0.5:8.5,
     #             yticks=-4:1:0,
     #         ),
     #     ),
     # )
 
     # neutral_paths = [
-    #     joinpath(figures_path, "_ks_law/leroy2008_neutral.png"),
-    #     joinpath(figures_path, "_ks_law/bigiel2010_neutral.png"),
+    #     joinpath(output_path, "_ks_law/leroy2008_neutral.png"),
+    #     joinpath(output_path, "_ks_law/bigiel2010_neutral.png"),
     # ]
 
     # GalaxyInspector.hvcatImages(
     #     1,
     #     neutral_paths;
-    #     output_path=joinpath(figures_path, "_ks_law/neutral.png"),
+    #     output_path=joinpath(output_path, "_ks_law/neutral.png"),
     # )
 
     # ###################
@@ -654,14 +649,14 @@ function basic_analysis(
     #     post_processing=GalaxyInspector.ppBigiel2010!,
     #     pp_kwargs=(; galaxy=:all, quantity=:neutral, color=Makie.wong_colors()[2]),
     #     fit=false,
-    #     output_file=joinpath(figures_path, "_ks_law/bigiel2010_total.png"),
+    #     output_file=joinpath(output_path, "_ks_law/bigiel2010_total.png"),
     #     filter_mode,
     #     sim_labels=[label],
     #     theme=Theme(
     #         Legend=(padding=(10, 0, 0, 20),),
     #         Axis=(
-    #             limits=(6.8, 8.5, -4.5, 0.5),
-    #             xticks=7:1:8,
+    #             limits=(6.4, 8.6, -4.5, 0.5),
+    #             xticks=6.5:0.5:8.5,
     #             yticks=-4:1:0,
     #         ),
     #     ),
@@ -678,28 +673,28 @@ function basic_analysis(
     #     post_processing=GalaxyInspector.ppLeroy2008!,
     #     pp_kwargs=(; quantity=:neutral, color=Makie.wong_colors()[2]),
     #     fit=false,
-    #     output_file=joinpath(figures_path, "_ks_law/leroy2008_total.png"),
+    #     output_file=joinpath(output_path, "_ks_law/leroy2008_total.png"),
     #     filter_mode,
     #     sim_labels=[label],
     #     theme=Theme(
     #         Legend=(padding=(10, 0, 0, 20),),
     #         Axis=(
-    #             limits=(6.8, 8.5, -4.5, 0.5),
-    #             xticks=7:1:8,
+    #             limits=(6.4, 8.6, -4.5, 0.5),
+    #             xticks=6.5:0.5:8.5,
     #             yticks=-4:1:0,
     #         ),
     #     ),
     # )
 
     # total_paths = [
-    #     joinpath(figures_path, "_ks_law/leroy2008_total.png"),
-    #     joinpath(figures_path, "_ks_law/bigiel2010_total.png"),
+    #     joinpath(output_path, "_ks_law/leroy2008_total.png"),
+    #     joinpath(output_path, "_ks_law/bigiel2010_total.png"),
     # ]
 
     # GalaxyInspector.hvcatImages(
     #     1,
     #     total_paths;
-    #     output_path=joinpath(figures_path, "_ks_law/total.png"),
+    #     output_path=joinpath(output_path, "_ks_law/total.png"),
     # )
 
     # ###############################
@@ -707,7 +702,7 @@ function basic_analysis(
     # ###############################
 
     # gas_paths = joinpath.(
-    #     figures_path,
+    #     output_path,
     #     "_ks_law",
     #     ["molecular.png", "atomic.png", "neutral.png", "total.png"],
     # )
@@ -715,29 +710,10 @@ function basic_analysis(
     # GalaxyInspector.hvcatImages(
     #     4,
     #     gas_paths;
-    #     output_path=joinpath(figures_path, "ks_law.png"),
+    #     output_path=joinpath(output_path, "ks_law.png"),
     # )
 
-    # rm(joinpath(figures_path, "_ks_law"); recursive=true, force=true)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    # rm(joinpath(output_path, "_ks_law"); recursive=true, force=true)
 
     # ################################################################################################
     # # Stellar density maps of the last snapshot, face-on/edge-on projections
@@ -752,25 +728,24 @@ function basic_analysis(
     #     println(log_file, "#"^100, "\n")
     # end
 
-    # temp_folder = joinpath(figures_path, "_stellar_density_maps")
+    # temp_folder = joinpath(output_path, "_stellar_density_maps")
 
-    # grid = GalaxyInspector.CubicGrid(r3, 400)
+    # grid = GalaxyInspector.CubicGrid(R3, 400)
+    # half_box_size = ustrip(u"kpc", R3) / 2.0
 
     # x_label = GalaxyInspector.getLabel("x", 0, u"kpc")
     # y_label = GalaxyInspector.getLabel("y", 0, u"kpc")
     # z_label = GalaxyInspector.getLabel("z", 0, u"kpc")
 
-    # y_limits = [ceil(ustrip(u"kpc", r3) / 2.0), 12]
-    # x_limits = ceil(ustrip(u"kpc", r3) / 2.0)
+    # x_limits = half_box_size
+    # y_limits = [half_box_size, 12]
 
-    # paths = joinpath.(temp_folder, ["stellar_mass_xy.jld2", "stellar_mass_xz.jld2"])
+    # filter_function, translation, rotation, request = GalaxyInspector.selectFilter(
+    #     cosmological ? :subhalo : :all_stellar,
+    #     GalaxyInspector.plotParams(:stellar_mass).request,
+    # )
 
     # for projection_plane in [:xy, :xz]
-
-    #     filter_function, translation, rotation, request = GalaxyInspector.selectFilter(
-    #         filter_mode,
-    #         GalaxyInspector.plotParams(:stellar_mass).request,
-    #     )
 
     #     GalaxyInspector.plotSnapshot(
     #         [simulation_path],
@@ -796,9 +771,45 @@ function basic_analysis(
 
     # with_theme(default_theme) do
 
-    #     f = Figure(size=(880, 1300), figure_padding=(5, 20, 0, 0))
+    #     f = Figure(size=(880, 1300), figure_padding=(5, 25, 0, 0))
 
-    #     for (row, path) in pairs(paths)
+    #     # Color range
+    #     min_color = Inf
+    #     max_color = -Inf
+
+    #     # Compute a good color range
+    #     for projection_plane in [:xy, :xz]
+
+    #         path = joinpath(temp_folder, "stellar_mass_$(projection_plane).jld2")
+
+    #         jldopen(path, "r") do jld2_file
+
+    #             _, _, z = jld2_file[first(keys(jld2_file))]["simulation_001"]
+
+    #             if !all(isnan, z)
+
+    #                 min_Σ, max_Σ = extrema(filter(!isnan, z))
+
+    #                 floor_Σ = floor(min_Σ)
+    #                 ceil_Σ  = ceil(max_Σ)
+
+    #                 if floor_Σ < min_color
+    #                     min_color = floor_Σ
+    #                 end
+    #                 if ceil_Σ > max_color
+    #                     max_color = ceil_Σ
+    #                 end
+
+    #             end
+
+    #         end
+
+    #     end
+
+    #     # Maximun tick for the axes
+    #     tick = floor(half_box_size; sigdigits=1)
+
+    #     for (row, projection_plane) in pairs([:xy, :xz])
 
     #         xaxis_v = row == 2
 
@@ -812,17 +823,19 @@ function basic_analysis(
     #             xticklabelsvisible=xaxis_v,
     #             xticklabelsize=35,
     #             yticklabelsize=35,
-    #             xticks=[-30, -20, -10, 0, 10, 20, 30],
-    #             yticks=[-30, -20, -10, 0, 10, 20, 30],
+    #             xticks=-tick:10:tick,
+    #             yticks=-tick:10:tick,
     #             limits=(-x_limits, x_limits, -y_limits[row], y_limits[row]),
     #             aspect=DataAspect(),
     #         )
+
+    #         path = joinpath(temp_folder, "stellar_mass_$(projection_plane).jld2")
 
     #         jldopen(path, "r") do jld2_file
 
     #             x, y, z = jld2_file[first(keys(jld2_file))]["simulation_001"]
 
-    #             pf = heatmap!(ax, x, y, z; colorrange=(6.5, 10.5))
+    #             pf = heatmap!(ax, x, y, z; colorrange=(min_color + 0.5, max_color - 0.5))
 
     #             if row == 1
 
@@ -831,7 +844,7 @@ function basic_analysis(
     #                     pf,
     #                     label=L"\log_{10} \, \Sigma_* \,\, [\mathrm{M_\odot \, kpc^{-2}}]",
     #                     ticklabelsize=28,
-    #                     ticks=7:0.5:10,
+    #                     ticks=min_color:0.5:max_color,
     #                     vertical=false,
     #                 )
 
@@ -843,34 +856,36 @@ function basic_analysis(
 
     #     rowsize!(f.layout, 3, Relative(0.3f0))
 
-    #     Makie.save(joinpath(figures_path, "stellar_density_maps.png"), f)
+    #     save(joinpath(output_path, "stellar_density_maps.png"), f)
 
     # end
 
     # rm(temp_folder; recursive=true)
 
-    # ##########################################################################
-    # # Gas components density map (last snapshot, face-on/edge-on projections)
-    # ##########################################################################
+    # ################################################################################################
+    # # Gas components density map of the last snapshot, face-on/edge-on projections
+    # ################################################################################################
 
     # if logging
     #     println(log_file, "#"^100)
     #     println(
     #         log_file,
-    #         "# Gas components density map (last snapshot, face-on/edge-on projections)",
+    #         "# Gas components density map of the last snapshot, face-on/edge-on projections",
     #     )
     #     println(log_file, "#"^100, "\n")
     # end
 
-    # temp_folder = joinpath(figures_path, "_density_maps")
+    # temp_folder = joinpath(output_path, "_density_maps")
 
-    # grid = GalaxyInspector.CubicGrid(r3, 400)
+    # grid = GalaxyInspector.CubicGrid(R3, 400)
+    # half_box_size = ustrip(u"kpc", R3) / 2.0
+
     # projections = [:xy, :xz]
     # quantities = [:gas_mass, :molecular_mass, :atomic_mass, :ionized_mass, :dust_mass]
 
     # colorbar_labels = [
     #     L"\log_{10} \, \Sigma_\mathrm{gas} \,\, [\mathrm{M_\odot \, kpc^{-2}}]",
-    #     L"\log_{10} \, \Sigma_\mathrm{H_2} \,\, [\mathrm{M_\odot \, kpc^{-2}}]",
+    #     L"\log_{10} \, \Sigma_\mathrm{H2} \,\, [\mathrm{M_\odot \, kpc^{-2}}]",
     #     L"\log_{10} \, \Sigma_\mathrm{HI} \,\, [\mathrm{M_\odot \, kpc^{-2}}]",
     #     L"\log_{10} \, \Sigma_\mathrm{HII} \,\, [\mathrm{M_\odot \, kpc^{-2}}]",
     #     L"\log_{10} \, \Sigma_\mathrm{dust} \,\, [\mathrm{M_\odot \, kpc^{-2}}]",
@@ -879,16 +894,18 @@ function basic_analysis(
     # x_label = GalaxyInspector.getLabel("x", 0, u"kpc")
     # y_label = GalaxyInspector.getLabel("y", 0, u"kpc")
     # z_label = GalaxyInspector.getLabel("z", 0, u"kpc")
+
     # n_rows = length(projections)
     # n_cols = length(quantities)
+
     # x_size = 2100
-    # y_size = (x_size / n_cols) * n_rows + 180.0
+    # y_size = 1020
 
-    # paths = Vector{String}(undef, n_rows * n_cols)
+    # jld2_paths = Vector{String}(undef, n_rows * n_cols)
 
-    # for (j, quantity) in pairs(quantities)
+    # for (i, quantity) in pairs(quantities)
 
-    #     for (i, projection_plane) in pairs(projections)
+    #     for (j, projection_plane) in pairs(projections)
 
     #         filter_function, translation, rotation, request = GalaxyInspector.selectFilter(
     #             cosmological ? :all_subhalo : :all_stellar,
@@ -915,7 +932,7 @@ function basic_analysis(
     #             backup_results=true,
     #         )
 
-    #         paths[j + n_cols * (i - 1)] = joinpath(
+    #         jld2_paths[i + n_cols * (j - 1)] = joinpath(
     #             temp_folder,
     #             "$(quantity)_$(projection_plane).jld2",
     #         )
@@ -926,9 +943,47 @@ function basic_analysis(
 
     # with_theme(default_theme) do
 
-    #     f = Figure(size=(x_size, y_size), figure_padding=(0, 0, 0, 0))
+    #     f = Figure(size=(x_size, y_size), figure_padding=(5, 10, 5, 0))
 
-    #     for (idx, path) in enumerate(paths)
+    #     # Compute a good color range
+    #     min_color = Inf
+    #     max_color = -Inf
+    #     MIN_Σ     = 3.0
+
+    #     for path in jld2_paths
+
+    #         jldopen(path, "r") do jld2_file
+
+    #             _, _, z = jld2_file[first(keys(jld2_file))]["simulation_001"]
+
+    #             if !all(isnan, z)
+
+    #                 min_Σ, max_Σ = extrema(filter(!isnan, z))
+
+    #                 floor_Σ = floor(min_Σ)
+    #                 ceil_Σ  = ceil(max_Σ)
+
+    #                 if floor_Σ < min_color
+    #                     min_color = floor_Σ
+    #                 end
+    #                 if ceil_Σ > max_color
+    #                     max_color = ceil_Σ
+    #                 end
+
+    #             end
+
+    #         end
+
+    #     end
+
+    #     if min_color < MIN_Σ
+    #         min_color = MIN_Σ
+    #     end
+
+    #     # Maximun tick for the axes
+    #     tick = floor(half_box_size; sigdigits=1)
+
+    #     for (idx, path) in enumerate(jld2_paths)
 
     #         row = ceil(Int, idx / n_cols)
     #         col = mod1(idx, n_cols)
@@ -950,15 +1005,17 @@ function basic_analysis(
     #             yticklabelsvisible=yaxis_v,
     #             xticklabelsize=28,
     #             yticklabelsize=28,
-    #             xticks=[-30, -20, -10, 0, 10, 20, 30],
-    #             yticks=[-30, -20, -10, 0, 10, 20, 30],
+    #             xticks=-tick:10:tick,
+    #             yticks=-tick:10:tick,
+    #             limits=(-half_box_size, half_box_size, -half_box_size, half_box_size),
+    #             aspect=DataAspect(),
     #         )
 
     #         jldopen(path, "r") do jld2_file
 
     #             x, y, z = jld2_file[first(keys(jld2_file))]["simulation_001"]
 
-    #             pf = heatmap!(ax, x, y, z)
+    #             pf = heatmap!(ax, x, y, z; colorrange=(min_color + 0.5, max_color - 0.5))
 
     #             if row == 1
 
@@ -967,7 +1024,7 @@ function basic_analysis(
     #                     pf,
     #                     label=colorbar_labels[col],
     #                     ticklabelsize=23,
-    #                     ticks=2:1:8,
+    #                     ticks=min_color:1:max_color,
     #                     vertical=false,
     #                 )
 
@@ -975,28 +1032,34 @@ function basic_analysis(
 
     #         end
 
-    #         colgap!(f.layout, 50)
-    #         colsize!(f.layout, col, Makie.Fixed(352.0f0))
+    #         colgap!(f.layout, 40)
 
     #     end
 
-    #     Makie.save(joinpath(figures_path, "gas_density_maps.png"), f)
+    #     save(joinpath(output_path, "gas_density_maps.png"), f)
 
     # end
 
     # rm(temp_folder; recursive=true)
 
-    # ##############################################################
-    # # Face-on density maps of different quantities (last snapshot)
-    # ##############################################################
+    # ################################################################################################
+    # # Face-on density maps for different quantities of the last snapshot
+    # ################################################################################################
 
     # if logging
     #     println(log_file, "#"^100)
-    #     println(log_file, "# Face-on density maps of different quantities (last snapshot)")
+    #     println(log_file, "# Face-on density maps for different quantities of the last snapshot")
     #     println(log_file, "#"^100, "\n")
     # end
 
-    # temp_folder = joinpath(figures_path, "_face_on_maps")
+    # temp_folder = joinpath(output_path, "_face_on_maps")
+
+    # box_size       = R3
+    # pixel_length   = box_size / 400.0
+    # half_box_size  = ustrip(u"kpc", box_size) / 2.0
+    # tick           = floor(half_box_size; sigdigits=1)
+    # size           = (910, 760)
+    # figure_padding = (20, 20, 30, 20)
 
     # densityMap(
     #     [simulation_path],
@@ -1004,17 +1067,21 @@ function basic_analysis(
     #     quantities=[:gas_mass],
     #     types=[:cells],
     #     output_path=temp_folder,
-    #     filter_mode,
+    #     filter_mode=cosmological ? :subhalo : :all_stellar,
     #     projection_planes=[:xy],
-    #     box_size=r3,
-    #     pixel_length=r3 / 400.0,
-    #     theme=Theme(
-    #         size=(910, 760),
-    #         figure_padding=(20, 20, 30, 20),
+    #     box_size,
+    #     pixel_length,
+    #     theme=Theme(;
+    #         size,
+    #         figure_padding,
     #         Colorbar=(
-    #             label=L"\mathrm{log}_{10} \, \Sigma_\mathrm{gas} \,\, [\mathrm{M_\odot \, kpc^{-2}}]",
+    #             label=L"\log_{10} \, \Sigma_\text{gas} \,\, [\mathrm{M_\odot \, kpc^{-2}}]",
     #         ),
-    #         Axis=(xticks=[-30, -20, -10, 0, 10, 20, 30], yticks=[-30, -20, -10, 0, 10, 20, 30]),
+    #         Axis=(
+    #             limits=(-half_box_size, half_box_size, -half_box_size, half_box_size),
+    #             xticks=-tick:10:tick,
+    #             yticks=-tick:10:tick,
+    #         ),
     #     ),
     #     title="Gas density",
     #     colorbar=true,
@@ -1027,17 +1094,21 @@ function basic_analysis(
     #     quantities=[:stellar_mass],
     #     types=[:particles],
     #     output_path=temp_folder,
-    #     filter_mode,
+    #     filter_mode=cosmological ? :subhalo : :all_stellar,
     #     projection_planes=[:xy],
-    #     box_size=r3,
-    #     pixel_length=r3 / 400.0,
-    #     theme=Theme(
-    #         size=(910, 760),
-    #         figure_padding=(20, 20, 30, 20),
+    #     box_size,
+    #     pixel_length,
+    #     theme=Theme(;
+    #         size,
+    #         figure_padding,
     #         Colorbar=(
-    #             label=L"\mathrm{log}_{10} \, \Sigma_\star \,\, [\mathrm{M_\odot \, kpc^{-2}}]",
+    #             label=L"\log_{10} \, \Sigma_\star \,\, [\mathrm{M_\odot \, kpc^{-2}}]",
     #         ),
-    #         Axis=(xticks=[-30, -20, -10, 0, 10, 20, 30], yticks=[-30, -20, -10, 0, 10, 20, 30]),
+    #         Axis=(
+    #             limits=(-half_box_size, half_box_size, -half_box_size, half_box_size),
+    #             xticks=-tick:10:tick,
+    #             yticks=-tick:10:tick,
+    #         ),
     #     ),
     #     title="Stellar density",
     #     colorbar=true,
@@ -1049,15 +1120,19 @@ function basic_analysis(
     #     n_snapshots;
     #     type=:cells,
     #     output_path=temp_folder,
-    #     filter_mode,
+    #     filter_mode=cosmological ? :subhalo : :all_stellar,
     #     projection_planes=[:xy],
-    #     box_size=r3,
-    #     pixel_length=r3 / 400.0,
-    #     theme=Theme(
-    #         size=(910, 760),
-    #         figure_padding=(20, 20, 30, 20),
-    #         Colorbar=(label=L"\mathrm{log}_{10} \, T \,\, [\mathrm{K}]",),
-    #         Axis=(xticks=[-30, -20, -10, 0, 10, 20, 30], yticks=[-30, -20, -10, 0, 10, 20, 30]),
+    #     box_size,
+    #     pixel_length,
+    #     theme=Theme(;
+    #         size,
+    #         figure_padding,
+    #         Colorbar=(label=L"\log_{10} \, T \,\, [\mathrm{K}]",),
+    #         Axis=(
+    #             limits=(-half_box_size, half_box_size, -half_box_size, half_box_size),
+    #             xticks=-tick:10:tick,
+    #             yticks=-tick:10:tick,
+    #         ),
     #     ),
     #     title="Gas temperature",
     #     colorbar=true,
@@ -1070,15 +1145,19 @@ function basic_analysis(
     #     components=[:gas],
     #     types=[:cells],
     #     output_path=temp_folder,
-    #     filter_mode,
+    #     filter_mode=cosmological ? :subhalo : :all_stellar,
     #     projection_planes=[:xy],
-    #     box_size=r3,
-    #     pixel_length=r3 / 400.0,
-    #     theme=Theme(
-    #         size=(910, 760),
-    #         figure_padding=(20, 20, 30, 20),
-    #         Colorbar=(label=L"\mathrm{log}_{10} \, Z_\mathrm{gas} \, [\mathrm{Z_\odot}]",),
-    #         Axis=(xticks=[-30, -20, -10, 0, 10, 20, 30], yticks=[-30, -20, -10, 0, 10, 20, 30]),
+    #     box_size,
+    #     pixel_length,
+    #     theme=Theme(;
+    #         size,
+    #         figure_padding,
+    #         Colorbar=(label=L"\log_{10} \, Z_\text{gas} \, [\mathrm{Z_\odot}]",),
+    #         Axis=(
+    #             limits=(-half_box_size, half_box_size, -half_box_size, half_box_size),
+    #             xticks=-tick:10:tick,
+    #             yticks=-tick:10:tick,
+    #         ),
     #     ),
     #     title="Gas metallicity",
     #     colorbar=true,
@@ -1091,15 +1170,19 @@ function basic_analysis(
     #     components=[:stellar],
     #     types=[:particles],
     #     output_path=temp_folder,
-    #     filter_mode,
+    #     filter_mode=cosmological ? :subhalo : :all_stellar,
     #     projection_planes=[:xy],
-    #     box_size=r3,
-    #     pixel_length=r3 / 400.0,
-    #     theme=Theme(
-    #         size=(910, 760),
-    #         figure_padding=(20, 20, 30, 20),
-    #         Colorbar=(label=L"\mathrm{log}_{10} \, Z_\star \, [\mathrm{Z_\odot}]",),
-    #         Axis=(xticks=[-30, -20, -10, 0, 10, 20, 30], yticks=[-30, -20, -10, 0, 10, 20, 30]),
+    #     box_size,
+    #     pixel_length,
+    #     theme=Theme(;
+    #         size,
+    #         figure_padding,
+    #         Colorbar=(label=L"\log_{10} \, Z_\star \, [\mathrm{Z_\odot}]",),
+    #         Axis=(
+    #             limits=(-half_box_size, half_box_size, -half_box_size, half_box_size),
+    #             xticks=-tick:10:tick,
+    #             yticks=-tick:10:tick,
+    #         ),
     #     ),
     #     title="Stellar metallicity",
     #     colorbar=true,
@@ -1111,17 +1194,21 @@ function basic_analysis(
     #     n_snapshots;
     #     type=:cells,
     #     output_path=temp_folder,
-    #     filter_mode,
+    #     filter_mode=cosmological ? :subhalo : :all_stellar,
     #     projection_planes=[:xy],
-    #     box_size=r3,
-    #     pixel_length=r3 / 400.0,
-    #     theme=Theme(
-    #         size=(910, 760),
-    #         figure_padding=(20, 20, 30, 20),
+    #     box_size,
+    #     pixel_length,
+    #     theme=Theme(;
+    #         size,
+    #         figure_padding,
     #         Colorbar=(
-    #             label=L"\mathrm{log}_{10} \, SFR_\mathrm{gas} \, [\mathrm{M_\odot \, yr^{-1}}]",
+    #             label=L"\log_{10} \, \text{SFR}_\text{gas} \, [\mathrm{M_\odot \, yr^{-1}}]",
     #         ),
-    #         Axis=(xticks=[-30, -20, -10, 0, 10, 20, 30], yticks=[-30, -20, -10, 0, 10, 20, 30]),
+    #         Axis=(
+    #             limits=(-half_box_size, half_box_size, -half_box_size, half_box_size),
+    #             xticks=-tick:10:tick,
+    #             yticks=-tick:10:tick,
+    #         ),
     #     ),
     #     title="Gas SFR",
     #     colorbar=true,
@@ -1141,185 +1228,679 @@ function basic_analysis(
     #             "$(basename(simulation_path))_stellar_xy_metallicity_map_snap_$(n_snaps_str).png",
     #         ]
     #     );
-    #     output_path=joinpath(figures_path, "face_on_maps.png"),
+    #     output_path=joinpath(output_path, "face_on_maps.png"),
     # )
 
     # rm(temp_folder, recursive=true, force=true)
 
+    # ################################################################################################
+    # # Stellar density video, face-on/edge-on projections
+    # ################################################################################################
 
-    # if gas_evolution
+    # if logging
+    #     println(log_file, "#"^100)
+    #     println(log_file, "# Stellar density video, face-on/edge-on projections")
+    #     println(log_file, "#"^100, "\n")
+    # end
 
-    #     #################################################################################
-    #     # Evolution of the masses and of the fractions, for the different gas components
-    #     # (last snapshot, within a sphere of radius r1)
-    #     #################################################################################
+    # quantity = :stellar_mass
+    # label    = L"\log_{10} \, \Sigma_* \,\, [\mathrm{M_\odot \, kpc^{-2}}]"
 
-    #     if logging
-    #         println(log_file, "#"^100)
-    #         println(
-    #             log_file,
-    #             "# Evolution of the masses and of the fractions, for the different gas components",
-    #             "\n# (last snapshot, within a sphere of radius r1)",
-    #         )
-    #         println(log_file, "#"^100, "\n")
-    #     end
+    # temp_folder = joinpath(output_path, "_$(quantity)_maps_video")
 
-    #     r1_label = string(round(Int, ustrip(u"kpc", r1))) * "kpc"
+    # grid = GalaxyInspector.CubicGrid(R3, 400)
+    # half_box_size = ustrip(u"kpc", R3) / 2.0
 
-    #     quantities = [:ionized_fraction, :atomic_fraction, :molecular_fraction]
-    #     sim_labels = ["Ionized fraction", "Atomic fraction", "Molecular fraction"]
+    # # Maximun tick for the axes
+    # tick = floor(half_box_size; sigdigits=1)
 
-    #     x_plot_params = GalaxyInspector.plotParams(:physical_time)
-    #     y_plot_params = GalaxyInspector.plotParams(:generic_fraction)
+    # x_label = GalaxyInspector.getLabel("x", 0, u"kpc")
+    # y_label = GalaxyInspector.getLabel("y", 0, u"kpc")
+    # z_label = GalaxyInspector.getLabel("z", 0, u"kpc")
 
-    #     temp_folder = joinpath(figures_path, "_gas_evolution")
+    # x_limits = half_box_size
+    # y_limits = [half_box_size, 12]
 
-    #     # Starts at ~200 Myr to ignore initial very low fractions
-    #     initial_snap = GalaxyInspector.findClosestSnapshot(simulation_path, 0.2u"Gyr")
+    # filter_function, translation, rotation, request = GalaxyInspector.selectFilter(
+    #     cosmological ? :subhalo : :all_stellar,
+    #     GalaxyInspector.plotParams(quantity).request,
+    # )
 
-    #     plotTimeSeries(
-    #         fill(simulation_path, length(quantities)),
-    #         [lines!];
-    #         output_path=temp_folder,
-    #         filename="gas_fractions_evolution",
-    #         slice=initial_snap:n_snapshots,
-    #         da_functions=[GalaxyInspector.daEvolution],
-    #         da_args=[(:physical_time, quantity) for quantity in quantities],
-    #         da_kwargs=[
-    #             (;
-    #                 filter_mode,
-    #                 extra_filter=dd -> GalaxyInspector.filterWithinSphere(dd, (0.0u"kpc", r1), :zero),
-    #                 scaling=identity,
-    #             ),
-    #         ],
-    #         x_unit=x_plot_params.unit,
-    #         y_unit=y_plot_params.unit,
-    #         x_exp_factor=x_plot_params.exp_factor,
-    #         y_exp_factor=y_plot_params.exp_factor,
-    #         xaxis_label=x_plot_params.axis_label,
-    #         yaxis_label=y_plot_params.axis_label,
-    #         xaxis_var_name=x_plot_params.var_name,
-    #         yaxis_var_name=y_plot_params.var_name,
-    #         save_figures=false,
-    #         backup_results=true,
-    #     )
+    # simulation_table = GalaxyInspector.makeSimulationTable(simulation_path)
 
-    #     quantities = [:stellar_mass, :gas_mass, :ionized_mass, :atomic_mass, :molecular_mass]
-    #     sim_labels = [
-    #         "Stellar mass",
-    #         "Gas mass",
-    #         "Ionized mass",
-    #         "Atomic mass",
-    #         "Molecular mass",
-    #     ]
+    # # Read the last snapshot
+    # last_dd = makeDataDict(
+    #     simulation_path,
+    #     n_snapshots,
+    #     request,
+    #     simulation_table,
+    # )
 
-    #     y_plot_params = GalaxyInspector.plotParams(:generic_mass)
+    # # Filter the last snapshot
+    # GalaxyInspector.filterData!(last_dd; filter_function)
 
-    #     plotTimeSeries(
-    #         fill(simulation_path, length(quantities)),
-    #         [lines!];
-    #         output_path=temp_folder,
-    #         filename="gas_masses_evolution",
-    #         slice=initial_snap:n_snapshots,
-    #         da_functions=[GalaxyInspector.daEvolution],
-    #         da_args=[(:physical_time, quantity) for quantity in quantities],
-    #         da_kwargs=[
-    #             (;
-    #                 filter_mode,
-    #                 extra_filter=dd -> GalaxyInspector.filterWithinSphere(dd, (0.0u"kpc", r1), :zero),
-    #                 scaling=identity,
-    #             ),
-    #         ],
-    #         x_unit=x_plot_params.unit,
-    #         y_unit=y_plot_params.unit,
-    #         x_exp_factor=x_plot_params.exp_factor,
-    #         y_exp_factor=y_plot_params.exp_factor,
-    #         xaxis_label=x_plot_params.axis_label,
-    #         yaxis_label=y_plot_params.axis_label,
-    #         xaxis_var_name=x_plot_params.var_name,
-    #         yaxis_var_name=y_plot_params.var_name,
-    #         save_figures=false,
-    #         backup_results=true,
-    #     )
+    # # Compute the translation for the last snapshot
+    # last_origin = GalaxyInspector.computeCenter(last_dd, translation)
+    # last_vcm    = GalaxyInspector.computeVcm(last_dd, translation)
 
-    #     paths = joinpath.(
-    #         temp_folder,
-    #         [
-    #             "gas_masses_evolution.jld2",
-    #             "gas_fractions_evolution.jld2",
-    #         ],
-    #     )
+    # # Translate the last snapshot
+    # GalaxyInspector.translateData!(last_dd, (last_origin, last_vcm))
 
-    #     current_theme = merge(Theme(palette=(linestyle=[:solid],),), default_theme)
+    # # Compute the rotation for the last snapshot
+    # rotation_matrix = GalaxyInspector.computeRotation(last_dd, rotation)
 
-    #     with_theme(current_theme) do
+    # # Rotate the last snapshot
+    # GalaxyInspector.rotateData!(last_dd, rotation_matrix)
 
-    #         f = Figure(size=(880, 1200),)
+    # # Compute a good color range
+    # _, _, z = GalaxyInspector.daDensity2DProjection(last_dd, grid, quantity, :particles)
 
-    #         ax_1 = CairoMakie.Axis(
-    #             f[1, 1];
-    #             xlabel=L"t \, [\mathrm{Gyr}]",
-    #             ylabel=L"\log_{10} \, M \, [\mathrm{10^{10} \, M_\odot}]",
-    #             xminorticksvisible=false,
-    #             xticksvisible=false,
-    #             xlabelvisible=false,
-    #             xticklabelsvisible=false,
-    #             limits=(nothing, nothing, -2.2, nothing),
-    #         )
+    # if !all(isnan, z)
 
-    #         jldopen(paths[1], "r") do jld2_file
+    #     min_Σ, max_Σ = extrema(filter(!isnan, z))
 
-    #             first_address = first(keys(jld2_file))
+    #     min_color = floor(min_Σ)
+    #     max_color = ceil(max_Σ)
 
-    #             x_s, y_s = jld2_file[first_address]["simulation_001"]
-    #             x_h, y_h = jld2_file[first_address]["simulation_002"]
-    #             x_i, y_i = jld2_file[first_address]["simulation_003"]
-    #             x_a, y_a = jld2_file[first_address]["simulation_004"]
-    #             x_m, y_m = jld2_file[first_address]["simulation_005"]
+    #     colorrange = (min_color + 0.5, max_color - 0.5)
+    #     colorticks = min_color:0.5:max_color
 
-    #             lines!(ax_1, x_s, log10.(y_s); color=Makie.wong_colors()[2], label="Stellar mass")
-    #             lines!(ax_1, x_h, log10.(y_h); color=:black, label="Gas mass")
-    #             lines!(ax_1, x_i, log10.(y_i); color=Makie.wong_colors()[1], label="Ionized mass" )
-    #             lines!(ax_1, x_a, log10.(y_a); color=Makie.wong_colors()[4], label="Atomic mass")
-    #             lines!(ax_1, x_m, log10.(y_m); color=Makie.wong_colors()[3], label="Molecular mass")
+    # else
 
-    #         end
-
-    #         axislegend(ax_1, position=:rb, framevisible=false, nbanks=1)
-
-    #         ax_2 = CairoMakie.Axis(
-    #             f[2, 1];
-    #             xlabel=L"t \, [\mathrm{Gyr}]",
-    #             ylabel=L"\log_{10} \, f",
-    #             aspect=nothing,
-    #             limits=(nothing, nothing, -3, nothing),
-    #         )
-
-    #         jldopen(paths[2], "r") do jld2_file
-
-    #             first_address = first(keys(jld2_file))
-
-    #             x_i, y_i = jld2_file[first_address]["simulation_001"]
-    #             x_a, y_a = jld2_file[first_address]["simulation_002"]
-    #             x_m, y_m = jld2_file[first_address]["simulation_003"]
-
-    #             lines!(ax_2, x_i, log10.(y_i); color=Makie.wong_colors()[1])
-    #             lines!(ax_2, x_a, log10.(y_a); color=Makie.wong_colors()[4])
-    #             lines!(ax_2, x_m, log10.(y_m); color=Makie.wong_colors()[3])
-
-    #         end
-
-    #         linkxaxes!(ax_1, ax_2)
-    #         rowsize!(f.layout, 1, Relative(2 / 3))
-    #         colsize!(f.layout, 1, Makie.Fixed(pixelarea(ax_1.scene)[].widths[2]))
-
-    #         Makie.save(joinpath(figures_path, "gas_evolution_inside_$(r1_label).png"), f)
-
-    #     end
-
-    #     rm(temp_folder, recursive=true, force=true)
+    #     colorrange = (0.0, 1.0)
+    #     colorticks = 0:0.5:1
 
     # end
+
+    # for projection_plane in [:xy, :xz]
+
+    #     GalaxyInspector.plotSnapshot(
+    #         [simulation_path],
+    #         request,
+    #         [heatmap!];
+    #         output_path=temp_folder,
+    #         base_filename="stellar_mass_$(projection_plane)",
+    #         filter_function,
+    #         da_functions=[GalaxyInspector.daDensity2DProjection],
+    #         da_args=[(grid, quantity, :particles)],
+    #         da_kwargs=[(; projection_plane)],
+    #         transform_box=true,
+    #         translation=(last_origin, last_vcm),
+    #         rotation=rotation_matrix,
+    #         x_unit=u"kpc",
+    #         y_unit=u"kpc",
+    #         save_figures=false,
+    #         backup_results=true,
+    #     )
+
+    # end
+
+    # prog_bar = Progress(
+    #     nrow(simulation_table),
+    #     dt=0.5,
+    #     desc="Analyzing and plotting the data... ",
+    #     color=:blue,
+    #     barglyphs=BarGlyphs("|#  |"),
+    # )
+
+    # with_theme(default_theme) do
+
+    #     f = Figure(size=(880, 1300), figure_padding=(5, 25, 0, 0))
+
+    #     # Initialize the animation stream
+    #     vs = VideoStream(f; framerate=20)
+
+    #     iterator = zip(simulation_table[!, :numbers], simulation_table[!, :physical_times])
+
+    #     for (snap_n, time) in iterator
+
+    #         for (row, proj_plane) in pairs([:xy, :xz])
+
+    #             xaxis_v = row == 2
+
+    #             ax = CairoMakie.Axis(
+    #                 f[row+1, 1];
+    #                 xlabel=x_label,
+    #                 ylabel=(row == 1 ? y_label : z_label),
+    #                 xminorticksvisible=xaxis_v,
+    #                 xticksvisible=xaxis_v,
+    #                 xlabelvisible=xaxis_v,
+    #                 xticklabelsvisible=xaxis_v,
+    #                 xticklabelsize=35,
+    #                 yticklabelsize=35,
+    #                 xticks=-tick:10:tick,
+    #                 yticks=-tick:10:tick,
+    #                 limits=(-x_limits, x_limits, -y_limits[row], y_limits[row]),
+    #                 aspect=DataAspect(),
+    #             )
+
+    #             address = "$(quantity)_$(proj_plane)_$(GalaxyInspector.SNAP_BASENAME)_$(snap_n)"
+    #             path    = joinpath(temp_folder, "$(quantity)_$(proj_plane).jld2")
+
+    #             jldopen(path, "r") do jld2_file
+
+    #                 x, y, z = jld2_file[address * "/simulation_001"]
+
+    #                 pf = heatmap!(ax, x, y, z; colorrange)
+
+    #                 if row == 1
+
+    #                     Colorbar(
+    #                         f[row, 1],
+    #                         pf;
+    #                         label,
+    #                         ticklabelsize=28,
+    #                         ticks=colorticks,
+    #                         vertical=false,
+    #                     )
+
+    #                     c_t = ustrip(u"Gyr", time)
+
+    #                     if c_t < 1.0
+    #                         time_stamp = round(c_t; digits=2)
+    #                     else
+    #                         time_stamp = round(c_t; sigdigits=3)
+    #                     end
+
+    #                     text!(
+    #                         ax,
+    #                         0.73,
+    #                         0.98;
+    #                         text=L"t = %$(rpad(time_stamp, 4, '0')) \, \text{Gyr}",
+    #                         align=(:left, :top),
+    #                         color=:white,
+    #                         space=:relative,
+    #                         fontsize=35,
+    #                     )
+
+    #                 end
+
+    #             end
+
+    #         end
+
+    #         rowsize!(f.layout, 3, Relative(0.3f0))
+
+    #         # Add the figure as a frame to the animation stream
+    #         recordframe!(vs)
+
+    #         GalaxyInspector.cleanPlot!(f)
+
+    #         next!(prog_bar)
+
+    #     end
+
+    #     save(joinpath(output_path, "$(quantity)_map.mkv"), vs)
+
+    # end
+
+    # rm(temp_folder; recursive=true)
+
+    # ################################################################################################
+    # # Stellar and gas density video, face-on/edge-on projections
+    # ################################################################################################
+
+    # if logging
+    #     println(log_file, "#"^100)
+    #     println(log_file, "# Stellar and gas density video, face-on/edge-on projections")
+    #     println(log_file, "#"^100, "\n")
+    # end
+
+    # temp_folder = joinpath(output_path, "_density_maps_video")
+
+    # quantities = [:gas_mass, :molecular_mass, :stellar_mass]
+    # labels = [
+    #     L"\log_{10} \, \Sigma_\text{gas} \,\, [\mathrm{M_\odot \, kpc^{-2}}]",
+    #     L"\log_{10} \, \Sigma_\text{H2} \,\, [\mathrm{M_\odot \, kpc^{-2}}]",
+    #     L"\log_{10} \, \Sigma_* \,\, [\mathrm{M_\odot \, kpc^{-2}}]",
+    # ]
+    # types = [:cells, :particles, :particles]
+
+    # grid = GalaxyInspector.CubicGrid(R3, 400)
+    # half_box_size = ustrip(u"kpc", R3) / 2.0
+
+    # # Maximun tick for the axes
+    # tick = floor(half_box_size; sigdigits=1)
+
+    # x_label = GalaxyInspector.getLabel("x", 0, u"kpc")
+    # y_label = GalaxyInspector.getLabel("y", 0, u"kpc")
+    # z_label = GalaxyInspector.getLabel("z", 0, u"kpc")
+
+    # x_limits = half_box_size
+    # y_limits = [half_box_size, 12]
+
+    # requests = [GalaxyInspector.plotParams(quantity).request for quantity in quantities]
+
+    # filter_function, translation, rotation, request = GalaxyInspector.selectFilter(
+    #     cosmological ? :subhalo : :all_stellar,
+    #     GalaxyInspector.mergeRequests(requests...),
+    # )
+
+    # simulation_table = GalaxyInspector.makeSimulationTable(simulation_path)
+
+    # #############################
+    # # Compute a good color range
+    # #############################
+
+    # # Read the last snapshot
+    # last_dd = makeDataDict(
+    #     simulation_path,
+    #     n_snapshots,
+    #     request,
+    #     simulation_table,
+    # )
+
+    # # Filter the last snapshot
+    # GalaxyInspector.filterData!(last_dd; filter_function)
+
+    # # Compute the translation for the last snapshot
+    # last_origin = GalaxyInspector.computeCenter(last_dd, translation)
+    # last_vcm    = GalaxyInspector.computeVcm(last_dd, translation)
+
+    # # Translate the last snapshot
+    # GalaxyInspector.translateData!(last_dd, (last_origin, last_vcm))
+
+    # # Compute the rotation for the last snapshot
+    # rotation_matrix = GalaxyInspector.computeRotation(last_dd, rotation)
+
+    # # Rotate the last snapshot
+    # GalaxyInspector.rotateData!(last_dd, rotation_matrix)
+
+    # ######################
+    # # Stellar color range
+    # ######################
+
+    # _, _, z = GalaxyInspector.daDensity2DProjection(last_dd, grid, :stellar_mass, :particles)
+
+    # if !all(isnan, z)
+
+    #     min_Σ, max_Σ = extrema(filter(!isnan, z))
+
+    #     min_color = floor(min_Σ)
+    #     max_color = ceil(max_Σ)
+
+    #     stellar_colorrange = (min_color + 0.5, max_color - 0.5)
+    #     stellar_colorticks = min_color:0.5:max_color
+
+    # else
+
+    #     stellar_colorrange = (0.0, 1.0)
+    #     stellar_colorticks = 0:0.5:1
+
+    # end
+
+    # ##################
+    # # Gas color range
+    # ##################
+
+    # MIN_Σ = 4.0
+
+    # _, _, z = GalaxyInspector.daDensity2DProjection(last_dd, grid, :molecular_mass, :cells)
+
+    # if !all(isnan, z)
+
+    #     min_Σ, max_Σ = extrema(filter(!isnan, z))
+
+    #     min_color = floor(min_Σ)
+    #     max_color = ceil(max_Σ)
+
+    #     if min_color < MIN_Σ
+    #         min_color = MIN_Σ
+    #     end
+
+    #     gas_colorrange = (min_color - 0.5, max_color + 0.5)
+    #     gas_colorticks = (min_color - 0.5):1.0:(max_color + 0.5)
+
+    # else
+
+    #     gas_colorrange = (0.0, 1.0)
+    #     gas_colorticks = 0:0.5:1
+
+    # end
+
+    # colorranges = [gas_colorrange, gas_colorrange, stellar_colorrange]
+    # colortickss = [gas_colorticks, gas_colorticks, stellar_colorticks]
+
+    # for (quantity, type) in zip(quantities, types)
+
+    #     for projection_plane in [:xy, :xz]
+
+    #         GalaxyInspector.plotSnapshot(
+    #             [simulation_path],
+    #             request,
+    #             [heatmap!];
+    #             output_path=temp_folder,
+    #             base_filename="$(quantity)_$(projection_plane)",
+    #             filter_function,
+    #             da_functions=[GalaxyInspector.daDensity2DProjection],
+    #             da_args=[(grid, quantity, type)],
+    #             da_kwargs=[(; projection_plane)],
+    #             transform_box=true,
+    #             translation=(last_origin, last_vcm),
+    #             rotation=rotation_matrix,
+    #             x_unit=u"kpc",
+    #             y_unit=u"kpc",
+    #             save_figures=false,
+    #             backup_results=true,
+    #         )
+
+    #     end
+
+    # end
+
+    # prog_bar = Progress(
+    #     nrow(simulation_table),
+    #     dt=0.5,
+    #     desc="Analyzing and plotting the data... ",
+    #     color=:blue,
+    #     barglyphs=BarGlyphs("|#  |"),
+    # )
+
+    # with_theme(default_theme) do
+
+    #     f = Figure(size=(2400, 1300), figure_padding=(5, 25, 0, 0))
+
+    #     # Initialize the animation stream
+    #     vs = VideoStream(f; framerate=20)
+
+    #     snap_iterator = zip(simulation_table[!, :numbers], simulation_table[!, :physical_times])
+    #     col_iterator = enumerate(zip(quantities, labels, colorranges, colortickss))
+
+    #     for (snap_n, time) in snap_iterator
+
+    #         for (col, (quantity, label, colorrange, colorticks)) in col_iterator
+
+    #             for (row, proj_plane) in pairs([:xy, :xz])
+
+    #                 xaxis_v = row == 2
+    #                 yaxis_v = col == 1
+
+    #                 ax = CairoMakie.Axis(
+    #                     f[row+1, col];
+    #                     xlabel=x_label,
+    #                     ylabel=(row == 1 ? y_label : z_label),
+    #                     xminorticksvisible=xaxis_v,
+    #                     xticksvisible=xaxis_v,
+    #                     xlabelvisible=xaxis_v,
+    #                     xticklabelsvisible=xaxis_v,
+    #                     yminorticksvisible=yaxis_v,
+    #                     yticksvisible=yaxis_v,
+    #                     ylabelvisible=yaxis_v,
+    #                     yticklabelsvisible=yaxis_v,
+    #                     xticklabelsize=35,
+    #                     yticklabelsize=35,
+    #                     xticks=-tick:10:tick,
+    #                     yticks=-tick:10:tick,
+    #                     limits=(-x_limits, x_limits, -y_limits[row], y_limits[row]),
+    #                     aspect=DataAspect(),
+    #                 )
+
+    #                 address = "$(quantity)_$(proj_plane)_$(GalaxyInspector.SNAP_BASENAME)_$(snap_n)"
+    #                 path = joinpath(temp_folder, "$(quantity)_$(proj_plane).jld2")
+
+    #                 jldopen(path, "r") do jld2_file
+
+    #                     x, y, z = jld2_file[address * "/simulation_001"]
+
+    #                     pf = heatmap!(ax, x, y, z; colorrange)
+
+    #                     if row == 1
+
+    #                         Colorbar(
+    #                             f[row, col],
+    #                             pf;
+    #                             label,
+    #                             ticklabelsize=28,
+    #                             ticks=colorticks,
+    #                             vertical=false,
+    #                         )
+
+    #                         c_t = ustrip(u"Gyr", time)
+
+    #                         if c_t < 1.0
+    #                             time_stamp = round(c_t; digits=2)
+    #                         else
+    #                             time_stamp = round(c_t; sigdigits=3)
+    #                         end
+
+    #                         text!(
+    #                             ax,
+    #                             0.68,
+    #                             0.98;
+    #                             text=L"t = %$(rpad(time_stamp, 4, '0')) \, \text{Gyr}",
+    #                             align=(:left, :top),
+    #                             color=:white,
+    #                             space=:relative,
+    #                             fontsize=40,
+    #                         )
+
+    #                     end
+
+    #                 end
+
+    #             end
+
+    #             rowsize!(f.layout, 3, Relative(0.3f0))
+
+    #         end
+
+    #         colgap!(f.layout, 70)
+
+    #         # Add the figure as a frame to the animation stream
+    #         recordframe!(vs)
+
+    #         GalaxyInspector.cleanPlot!(f)
+
+    #         next!(prog_bar)
+
+    #     end
+
+    #     save(joinpath(output_path, "density_maps.mkv"), vs)
+
+    # end
+
+    # # rm(temp_folder; recursive=true)
+
+    # ################################################################################################
+    # # Evolution of the masses and of the fractions, for the different gas components
+    # ################################################################################################
+
+    # if logging
+    #     println(log_file, "#"^100)
+    #     println(
+    #         log_file,
+    #         "# Evolution of the masses and of the fractions, for the different gas components",
+    #     )
+    #     println(log_file, "#"^100, "\n")
+    # end
+
+    # quantities = [
+    #     :ionized_fraction,
+    #     :atomic_fraction,
+    #     :molecular_fraction,
+    #     :dust_fraction,
+    #     :metal_gas_fraction,
+    # ]
+
+    # x_plot_params = GalaxyInspector.plotParams(:physical_time)
+    # y_plot_params = GalaxyInspector.plotParams(:generic_fraction)
+
+    # temp_folder = joinpath(output_path, "_gas_evolution")
+
+    # plotTimeSeries(
+    #     fill(simulation_path, length(quantities)),
+    #     [lines!];
+    #     output_path=temp_folder,
+    #     filename="gas_fractions_evolution",
+    #     da_functions=[GalaxyInspector.daEvolution],
+    #     da_args=[(:physical_time, quantity) for quantity in quantities],
+    #     da_kwargs=[(;
+    #         filter_mode,
+    #         extra_filter=dd -> GalaxyInspector.filterWithinSphere(dd, (0.0u"kpc", R1), :zero),
+    #         scaling=identity,
+    #     )],
+    #     x_unit=x_plot_params.unit,
+    #     y_unit=y_plot_params.unit,
+    #     x_exp_factor=x_plot_params.exp_factor,
+    #     y_exp_factor=y_plot_params.exp_factor,
+    #     xaxis_label=x_plot_params.axis_label,
+    #     yaxis_label=y_plot_params.axis_label,
+    #     xaxis_var_name=x_plot_params.var_name,
+    #     yaxis_var_name=y_plot_params.var_name,
+    #     save_figures=false,
+    #     backup_results=true,
+    # )
+
+    # quantities = [
+    #     :stellar_mass,
+    #     :ionized_mass,
+    #     :atomic_mass,
+    #     :molecular_mass,
+    #     :dust_mass,
+    #     :ode_metal_mass,
+    # ]
+
+    # y_plot_params = GalaxyInspector.plotParams(:generic_mass)
+
+    # plotTimeSeries(
+    #     fill(simulation_path, length(quantities)),
+    #     [lines!];
+    #     output_path=temp_folder,
+    #     filename="gas_masses_evolution",
+    #     da_functions=[GalaxyInspector.daEvolution],
+    #     da_args=[(:physical_time, quantity) for quantity in quantities],
+    #     da_kwargs=[(;
+    #         filter_mode,
+    #         extra_filter=dd -> GalaxyInspector.filterWithinSphere(dd, (0.0u"kpc", R1), :zero),
+    #         scaling=identity,
+    #     )],
+    #     x_unit=x_plot_params.unit,
+    #     y_unit=y_plot_params.unit,
+    #     x_exp_factor=x_plot_params.exp_factor,
+    #     y_exp_factor=y_plot_params.exp_factor,
+    #     xaxis_label=x_plot_params.axis_label,
+    #     yaxis_label=y_plot_params.axis_label,
+    #     xaxis_var_name=x_plot_params.var_name,
+    #     yaxis_var_name=y_plot_params.var_name,
+    #     save_figures=false,
+    #     backup_results=true,
+    # )
+
+    # paths = joinpath.(temp_folder, ["gas_masses_evolution.jld2", "gas_fractions_evolution.jld2"])
+
+    # current_theme = merge(Theme(palette=(linestyle=[:solid],),), default_theme)
+
+    # with_theme(current_theme) do
+
+    #     f = Figure(size=(880, 1650), figure_padding=(5, 10, 5, 10))
+
+    #     ax_1 = CairoMakie.Axis(
+    #         f[1, 1];
+    #         xlabel=L"t \, [\mathrm{Gyr}]",
+    #         ylabel=L"\log_{10} \, M \, [\mathrm{10^{10} \, M_\odot}]",
+    #         # xminorticksvisible=false,
+    #         # xticksvisible=false,
+    #         xlabelvisible=false,
+    #         xticklabelsvisible=false,
+    #         limits=(-0.1, nothing, -4.2, 1.2),
+    #         yticks=-4:1:1,
+    #     )
+
+    #     jldopen(paths[1], "r") do jld2_file
+
+    #         first_address = first(keys(jld2_file))
+
+    #         x_s, y_s = jld2_file[first_address]["simulation_001"]
+    #         x_i, y_i = jld2_file[first_address]["simulation_002"]
+    #         x_a, y_a = jld2_file[first_address]["simulation_003"]
+    #         x_m, y_m = jld2_file[first_address]["simulation_004"]
+    #         x_d, y_d = jld2_file[first_address]["simulation_005"]
+    #         x_Z, y_Z = jld2_file[first_address]["simulation_006"]
+
+    #         lines!(ax_1, x_s, log10.(y_s); color=Makie.wong_colors()[2], label="Stellar mass")
+    #         lines!(ax_1, x_i, log10.(y_i); color=Makie.wong_colors()[1], label="Ionized mass" )
+    #         lines!(ax_1, x_a, log10.(y_a); color=Makie.wong_colors()[4], label="Atomic mass")
+    #         lines!(ax_1, x_m, log10.(y_m); color=Makie.wong_colors()[3], label="Molecular mass")
+    #         lines!(ax_1, x_d, log10.(y_d); color=Makie.wong_colors()[6], label="Dust mass")
+    #         lines!(ax_1, x_Z, log10.(y_Z); color=Makie.wong_colors()[5], label="Metals mass")
+
+    #         # z ~ 6.0 (t = 0.95 Gyr)
+    #         vlines!(ax_1, 0.95, color=:gray25)
+
+    #         # 10^7 M⊙
+    #         hlines!(ax_1, -3.0, color=:gray25)
+
+    #     end
+
+    #     axislegend(ax_1, position=:rb, framevisible=false, nbanks=2)
+
+    #     ax_2 = CairoMakie.Axis(
+    #         f[2, 1];
+    #         xlabel=L"t \, [\mathrm{Gyr}]",
+    #         ylabel=L"\log_{10} \, f",
+    #         aspect=nothing,
+    #         limits=(-0.1, nothing, -5.2, 0.2),
+    #         yticks=-5:1:0,
+    #     )
+
+    #     jldopen(paths[2], "r") do jld2_file
+
+    #         first_address = first(keys(jld2_file))
+
+    #         x_i, y_i = jld2_file[first_address]["simulation_001"]
+    #         x_a, y_a = jld2_file[first_address]["simulation_002"]
+    #         x_m, y_m = jld2_file[first_address]["simulation_003"]
+    #         x_d, y_d = jld2_file[first_address]["simulation_004"]
+    #         x_Z, y_Z = jld2_file[first_address]["simulation_005"]
+
+    #         lines!(ax_2, x_i, log10.(y_i); color=Makie.wong_colors()[1])
+    #         lines!(ax_2, x_a, log10.(y_a); color=Makie.wong_colors()[4])
+    #         lines!(ax_2, x_m, log10.(y_m); color=Makie.wong_colors()[3])
+    #         lines!(ax_2, x_d, log10.(y_d); color=Makie.wong_colors()[6])
+    #         lines!(ax_2, x_Z, log10.(y_Z); color=Makie.wong_colors()[5])
+
+    #     end
+
+    #     linkxaxes!(ax_1, ax_2)
+
+    #     save(joinpath(output_path, "gas_evolution.png"), f)
+
+    # end
+
+    # rm(temp_folder, recursive=true, force=true)
+
+    ################################################################################################
+    # Dust to stellar mass ratio
+    ################################################################################################
+
+    y_plot_params = GalaxyInspector.plotParams(:dust_stellar_mass_ratio)
+    x_plot_params = GalaxyInspector.plotParams(:physical_time)
+
+    plotTimeSeries(
+        [simulation_path],
+        [scatter!];
+        output_path,
+        filename="dust_to_stellar_mass_ratio",
+        da_functions=[GalaxyInspector.daEvolution],
+        da_args=[(:physical_time, :dust_stellar_mass_ratio)],
+        da_kwargs=[(;
+            filter_mode,
+            extra_filter=dd -> GalaxyInspector.filterWithinSphere(dd, (0.0u"kpc", R1), :zero),
+            scaling=identity,
+        )],
+        post_processing=GalaxyInspector.ppHorizontalFlags!,
+        pp_args=([exp10(-2.0), exp10(-3.0), exp10(-4.0)],),
+        pp_kwargs=(; colors=[:gray65], line_styles=[:dash]),
+        x_unit=x_plot_params.unit,
+        y_unit=y_plot_params.unit,
+        x_exp_factor=x_plot_params.exp_factor,
+        y_exp_factor=y_plot_params.exp_factor,
+        xaxis_label=x_plot_params.axis_label,
+        yaxis_label=y_plot_params.axis_label,
+        xaxis_var_name=x_plot_params.var_name,
+        yaxis_var_name=y_plot_params.var_name,
+        yaxis_scale_func=log10,
+    )
 
     ##############
     # Close files
@@ -1333,75 +1914,69 @@ end
 
 function comparison(
     simulation_paths::Vector{String},
-    base_out_path::String,
-    r1::Unitful.Length,
+    output_path::String,
     logging::Bool;
-    labels::Vector{String}=basename.(simulation_paths),
+    labels::Vector{<:AbstractString}=basename.(simulation_paths),
 )::Nothing
 
-    # Create the output folders
-    report_path = mkpath(joinpath(base_out_path, "comparison"))
-    figures_path = mkpath(joinpath(report_path, "figures"))
+    # Number of simulations
+    n_sims = length(simulation_paths)
+    @assert n_sims == length(labels) "Number of simulations and labels must match."
+
+    # Create the output folder
+    mkpath(output_path)
 
     # Activate logging
     if logging
-        log_file = open(joinpath(report_path, "logs.txt"), "w+")
+        log_file = open(joinpath(output_path, "logs.txt"), "w+")
         GalaxyInspector.setLogging!(logging; stream=log_file)
     end
 
-    temp_folder = joinpath(figures_path, "_mass_evolution")
+    temp_folder = joinpath(output_path, "_mass_evolution")
 
-    # Select the closest snapshot to readshift 0
-    snaps = GalaxyInspector.findClosestSnapshot.(simulation_paths, 14.0u"Gyr")
+    # Number of snapshots
+    n_snapshots = minimum(GalaxyInspector.countSnapshot.(simulation_paths))
 
-    # Starts at ~200 Myr to ignore initial very low fractions
-    initial_snaps = GalaxyInspector.findClosestSnapshot.(simulation_paths, 0.2u"Gyr")
+    # Characteristic radii
+    R1 = 40.0u"kpc"
 
-    n_sims= length(simulation_paths)
-    @assert n_sims == length(labels) "Number of simulations and labels must match."
+    # Check if the simulations are cosmological
+    cosmological = all(GalaxyInspector.isSimCosmological, simulation_paths)
+    if cosmological
+        filter_mode  = :subhalo
+        extra_filter = dd -> GalaxyInspector.filterWithinSphere(dd, (0.0u"kpc", R1), :zero)
+    else
+        filter_mode  = :all
+        extra_filter = GalaxyInspector.filterNothing
+    end
 
-    #########################################################################################
-    # Compute the evolution of the total mass of the different gas components and of the SFR
-    # (within a sphere of radius r1)
-    #########################################################################################
+    ################################################################################################
+    # Evolution of the gas components and the SFR
+    ################################################################################################
 
     if logging
         println(log_file, "#"^100)
-        println(
-            log_file,
-            "# Compute the evolution of the total mass of the different gas components and of the SFR",
-            "\n(within a sphere of radius r1)",
-        )
+        println(log_file, "# Evolution of the gas components and the SFR")
         println(log_file, "#"^100, "\n")
     end
 
-    quantities = [:ionized_mass, :atomic_mass, :molecular_mass]
-    n_panels   = length(quantities) + 1
+    quantities   = [:ionized_mass, :atomic_mass, :molecular_mass, :dust_mass, :sfr, :stellar_mass]
+    smooths      = [0, 0, 0, 0, n_snapshots ÷ 5, 0]
+    n_quantities = length(quantities)
 
-    x_plot_params = GalaxyInspector.plotParams(:physical_time)
+    jld2_paths = Vector{String}(undef, n_quantities * n_sims)
 
-    for (simulation, z0_snap) in zip(simulation_paths, snaps)
+    for (i, simulation) in pairs(simulation_paths)
 
-        simulation_table = GalaxyInspector.makeSimulationTable(simulation)
+        sim_name = basename(simulation)
 
-        # Check if the simulation is cosmological
-        cosmological = GalaxyInspector.isCosmological(
-            first(skipmissing(simulation_table[!, :snapshot_paths]))
-        )
-
-        if cosmological
-            filter_mode = :subhalo
-        else
-            filter_mode = :all_stellar
-        end
-
-        for quantity in quantities
+        for (j, (quantity, smooth)) in enumerate(zip(quantities, smooths))
 
             if logging
                 println(log_file, "#"^100)
                 println(
                     log_file,
-                    "# Computing the evolution of $(quantity) for $(basename(simulation))",
+                    "# Computing the evolution of $(quantity) for $(sim_name)",
                 )
                 println(log_file, "#"^100, "\n")
             end
@@ -1412,105 +1987,25 @@ function comparison(
                 [simulation],
                 [lines!];
                 output_path=temp_folder,
-                filename="$(quantity)_$(basename(simulation))",
+                filename="$(quantity)_$(sim_name)",
                 da_functions=[GalaxyInspector.daEvolution],
                 da_args=[(:physical_time, quantity)],
-                da_kwargs=[
-                    (;
-                        filter_mode,
-                        extra_filter=dd -> GalaxyInspector.filterWithinSphere(
-                            dd,
-                            (0.0u"kpc", r1),
-                            :zero,
-                        ),
-                        scaling=identity,
-                    ),
-                ],
-                x_unit=x_plot_params.unit,
+                da_kwargs=[(; filter_mode, extra_filter, smooth, scaling=identity)],
+                x_unit=u"Gyr",
                 y_unit=y_plot_params.unit,
-                x_exp_factor=x_plot_params.exp_factor,
                 y_exp_factor=y_plot_params.exp_factor,
                 save_figures=false,
                 backup_results=true,
             )
 
-        end
-
-        y_plot_params = GalaxyInspector.plotParams(:sfr)
-
-        filter_function, translation, rotation, request = GalaxyInspector.selectFilter(
-            filter_mode,
-            y_plot_params.request,
-        )
-
-        if logging
-            println(log_file, "#"^100)
-            println(
-                log_file,
-                "# Computing the evolution of the SFR for $(basename(simulation))",
+            jld2_paths[(i - 1) * n_quantities + j] = joinpath(
+                temp_folder,
+                "$(quantity)_$(sim_name).jld2",
             )
-            println(log_file, "#"^100, "\n")
-        end
 
-        plotSnapshot(
-            [simulation],
-            request,
-            [lines!];
-            output_path=temp_folder,
-            base_filename="sfr_$(basename(simulation))",
-            slice=z0_snap,
-            filter_function,
-            da_functions=[GalaxyInspector.daStellarHistory],
-            da_args=[()],
-            da_kwargs=[
-                (;
-                    quantity=:sfr,
-                    n_bins=80,
-                    filter_function=dd -> GalaxyInspector.filterWithinSphere(
-                        dd,
-                        (0.0u"kpc", r1),
-                        :zero,
-                    ),
-                ),
-            ],
-            transform_box=true,
-            translation,
-            rotation,
-            x_unit=x_plot_params.unit,
-            y_unit=y_plot_params.unit,
-            x_exp_factor=x_plot_params.exp_factor,
-            y_exp_factor=y_plot_params.exp_factor,
-            save_figures=false,
-            backup_results=true,
-        )
+        end
 
     end
-
-    ###################################################################################
-    # Plot the evolution of the masses and of the SFR for the different gas components
-    # (within a sphere of radius r1)
-    ###################################################################################
-
-    jld2_paths = joinpath.(
-        temp_folder,
-        vcat(
-            ["sfr_$(label).jld2" for label in basename.(simulation_paths)],
-            ["ionized_mass_$(label).jld2" for label in basename.(simulation_paths)],
-            ["atomic_mass_$(label).jld2" for label in basename.(simulation_paths)],
-            ["molecular_mass_$(label).jld2" for label in basename.(simulation_paths)],
-        ),
-    )
-
-    xlabel = LaTeXString(
-        replace(
-            x_plot_params.axis_label,
-            "auto_label" => GalaxyInspector.getLabel(
-                x_plot_params.var_name,
-                x_plot_params.exp_factor,
-                x_plot_params.unit,
-            ),
-        ),
-    )
 
     current_theme = merge(
         Theme(palette=(linestyle=[:solid],),),
@@ -1519,62 +2014,12 @@ function comparison(
     )
 
     colors = current_theme[:palette][:color][]
-    y_lows = [-3.2, exp10(-2.5), exp10(-2.5), exp10(-10.5)]
-    x_limits = (-0.1, 14.0)
-    xticks = 0.0:2.0:14.0
 
     with_theme(current_theme) do
 
-        f = Figure(size=(880, 1840), figure_padding=(1, 15, 5, 20))
+        f = Figure(size=(2750, 1300), figure_padding=(5, 10, 5, 10))
 
-        #########################
-        # Plot the SFR evolution
-        #########################
-
-        ylabel = LaTeXString(
-            replace(
-                GalaxyInspector.plotParams(:sfr).axis_label,
-                "auto_label" => GalaxyInspector.getLabel(
-                    GalaxyInspector.plotParams(:sfr).var_name,
-                    GalaxyInspector.plotParams(:sfr).exp_factor,
-                    GalaxyInspector.plotParams(:sfr).unit,
-                ),
-            ),
-        )
-
-        ax = CairoMakie.Axis(
-            f[1, 1];
-            xlabel,
-            ylabel=L"$\log_{10}$ %$(ylabel)",
-            aspect=AxisAspect(1.7),
-            xlabelvisible=false,
-            xticklabelsvisible=false,
-            xticks,
-            yticks=-3:1:1,
-            limits=(x_limits[1], x_limits[2], y_lows[1], nothing),
-        )
-
-        for (path, label, color) in zip(jld2_paths[1:n_sims], labels, colors)
-
-            jldopen(path, "r") do jld2_file
-
-                address = first(keys(jld2_file))
-
-                x, y = jld2_file[address]["simulation_001"]
-
-                lines!(ax, x, log10.(y); label, color)
-
-            end
-
-        end
-
-        axislegend(ax, position=:rb, framevisible=false, nbanks=1)
-
-        ##############################
-        # Plot the gas mass evolution
-        ##############################
-
-        for (i, (quantity, y_low)) in enumerate(zip(quantities, y_lows[2:end]))
+        for (i, quantity) in pairs(quantities)
 
             y_plot_params = GalaxyInspector.plotParams(quantity)
 
@@ -1590,40 +2035,78 @@ function comparison(
             )
 
             ax = CairoMakie.Axis(
-                f[i+1, 1];
-                xlabel,
+                f[ceil(Int, i / 3), mod1(i, 3)];
+                xlabel=L"t \, [\mathrm{Gyr}]",
                 ylabel,
-                aspect=AxisAspect(1.7),
-                yscale=log10,
-                xlabelvisible=i+1 == n_panels,
-                xticklabelsvisible=i+1 == n_panels,
-                xticks,
-                limits=(x_limits[1], x_limits[2], y_low, nothing),
+                aspect=AxisAspect(1.4),
             )
 
-            paths = jld2_paths[(n_sims*i+1):(n_sims*i+n_sims)]
+            for (simulation_path, label, color) in zip(simulation_paths, labels, colors)
 
-            for (path, label, color, initial_snap) in zip(paths, labels, colors, initial_snaps)
+                jld2_path = joinpath(temp_folder, "$(quantity)_$(basename(simulation_path)).jld2")
 
-                jldopen(path, "r") do jld2_file
+                jldopen(jld2_path, "r") do jld2_file
 
                     address = first(keys(jld2_file))
 
                     x, y = jld2_file[address]["simulation_001"]
 
-                    lines!(ax, x[initial_snap:end], y[initial_snap:end]; label, color)
+                    lines!(ax, x, y; label, color, linewidth=3)
 
                 end
 
             end
 
+            axislegend(ax, position=:rb, framevisible=false, nbanks=1)
+
         end
 
-        Makie.save(joinpath(figures_path, "mass_evolution.png"), f)
+        save(joinpath(output_path, "mass_evolution.png"), f)
 
     end
 
     rm(temp_folder; recursive=true)
+
+    ################################################################################################
+    # Profiles for the last snapshot, comparison with Mollá et al. (2015)
+    ################################################################################################
+
+    for quantity in [
+        :stellar_area_density,
+        :molecular_area_density,
+        :sfr_area_density,
+        :atomic_area_density,
+        :O_stellar_abundance,
+        :N_stellar_abundance,
+        :C_stellar_abundance,
+    ]
+
+        if logging
+            println(log_file, "#"^100)
+            println(
+                log_file,
+                "# $(quantity) profile for the last snapshot, comparison with Mollá et al. (2015)",
+            )
+            println(log_file, "#"^100, "\n")
+        end
+
+        compareMolla2015(
+            simulation_paths,
+            n_snapshots,
+            quantity;
+            output_path=joinpath(output_path, "Molla2015"),
+            filter_mode,
+            sim_labels=labels,
+            theme=Theme(
+                size=(1500, 880),
+                figure_padding=(10, 15, 5, 15),
+                palette=(linestyle=[:solid],),
+                Axis=(aspect=nothing,),
+                Legend=(halign=:right, valign=:top, nbanks=1),
+            ),
+        )
+
+    end
 
     ##############
     # Close files
@@ -1643,51 +2126,96 @@ function (@main)(ARGS)
     # Output folder
     BASE_OUT_PATH = "./"
 
-    # Characteristic radii
-    R1 = 40.0u"kpc"
-    R2 = 2.0u"kpc"
-    R3 = 65u"kpc"
+    SIMULATIONS =
+    vcat(
+        joinpath.(
+            "F:/simulations/isolated/",
+            [
+                # "SFM_064",
+                # "STD_064",
+                # "BLT_064",
+                # "SFM_032",
+                "SFM_064_T00",
+                # "SFM_064_T01",
+                # "SFM_064_T02",
+                # "SFM_064_T03",
+                # "SFM_064_T04",
+                # "SFM_064_T05",
+                # "SFM_064_T06",
+                # "SFM_064_T07",
+                # "SFM_064_T08",
+                # "SFM_128",
+            ]
+        ),
+        ["F:/simulations/current/test_dust_11"],
+    )
 
-    # If the evolution of the masses and of the fractions will be done (slow to run)
-    GAS_EVOLUTION = true
-
-    SIMULATIONS = [
-        "F:/simulations/isolated/SFM_064",
-    ]
-
-    LABELS = [
-        "SFM_064",
-    ]
-
-    # SIMULATIONS = [
-    #     "F:/simulations/current/test_dust_05",
-    #     "F:/simulations/current/test_dust_08",
-    #     "F:/simulations/current/test_dust_09",
-    #     "F:/simulations/current/test_dust_10",
-    # ]
-
-    # LABELS = [
-    #     "No LWB",
-    #     "Incatasciato et al. 2023",
-    #     "Ahn et al. 2009",
-    #     "Visbal et al. 2014",
-    # ]
-
-    # if length(SIMULATIONS) > 1
-    #     comparison(SIMULATIONS, BASE_OUT_PATH, R1, LOGGING; labels=LABELS)
-    # end
-
-    for (simulation, label) in zip(SIMULATIONS, LABELS)
-        basic_analysis(
-            simulation,
-            BASE_OUT_PATH,
-            LOGGING,
-            R1,
-            R2,
-            R3;
-            gas_evolution=GAS_EVOLUTION,
-            label,
-        )
+    for simulation in SIMULATIONS
+        basic_analysis(simulation, BASE_OUT_PATH, LOGGING)
     end
+
+    # ##################################################
+    # # SF model tests
+    # ##################################################
+
+    # comparison(
+    #     joinpath.("F:/simulations/isolated/", ["SFM_064", "STD_064", "BLT_064"]),
+    #     joinpath(BASE_OUT_PATH, "comparison/sf_model"),
+    #     LOGGING;
+    #     labels=["SFM", "STD", "BLT"],
+    # )
+
+    # ##################################################
+    # # LW background tests
+    # ##################################################
+
+    # comparison(
+    #     joinpath.("F:/simulations/isolated/", ["SFM_064_T00", "SFM_064_T01", "SFM_064_T02"]),
+    #     joinpath(BASE_OUT_PATH, "comparison/lw_background"),
+    #     LOGGING;
+    #     labels=["Incatasciato et al. (2023)", "Ahn et al. (2009)", "Visbal et al. (2014)"],
+    # )
+
+    # ##################################################
+    # # Model equation tests
+    # ##################################################
+
+    # comparison(
+    #     joinpath.(
+    #         "F:/simulations/isolated/",
+    #         ["SFM_064_T03", "SFM_064_T04", "SFM_064_T05", "SFM_064_T06", "SFM_064"]
+    #     ),
+    #     joinpath(BASE_OUT_PATH, "comparison/model_equation"),
+    #     LOGGING;
+    #     labels=[
+    #         "Paper 1",
+    #         "Paper 1 + dust",
+    #         "Paper 1 + dust + shielding",
+    #         "Paper 1 + dust + shielding + LW",
+    #         "Paper 2",
+    #     ],
+    # )
+
+    # ##################################################
+    # # Resolution tests
+    # ##################################################
+
+    # comparison(
+    #     joinpath.("F:/simulations/isolated/", ["SFM_032", "SFM_064", "SFM_128"]),
+    #     joinpath(BASE_OUT_PATH, "comparison/resolution"),
+    #     LOGGING;
+    #     labels=[L"32^3", L"64^3", L"128^3"],
+    # )
+
+    # ##################################################
+    # # Isolated IC test
+    # ##################################################
+
+    # comparison(
+    #     joinpath.("F:/simulations/isolated/", ["SFM_064", "SFM_064_T08"]),
+    #     joinpath(BASE_OUT_PATH, "comparison/isolated_ic"),
+    #     LOGGING;
+    #     labels=["OMEGA_MAT_1.5", "OMEGA_MAT_1.0"],
+    # )
 
 end

@@ -1,0 +1,40 @@
+####################################################################################################
+# Resolved molecular Kennicutt–Schmidt law
+# Redshift 0 - Scatter plot - Rectangular grid
+####################################################################################################
+
+┌ Warning | kennicuttSchmidtLaw: The global `PHYSICAL_UNITS` is set to false, but Kennicutt-Schmidt law plots must be in physical units, so the global setting will be ignored and default to true just for this function
+└ @ d:\documents\phd\gfp\plots\lozano_2025\GalaxyInspector\src\plotting\convenience.jl:7037
+
+┌ Info | 
+│ Density range - log₁₀(Σ [M⊙ kpc^-2]) 
+│   Simulation: Au6_MOL_test18 
+│   Snapshot:   128 
+│   Quantity:   stellar_mass 
+│   Field type: particles 
+│   Plane:      xy 
+│   Min - Max:  (4.098480677232259, 7.706555259766495) 
+│   Mean:       5.651657212025242 
+│   Median:     5.6656163731032905 
+│   Mode:       4.886593240892954
+└ @ d:\documents\phd\gfp\plots\lozano_2025\GalaxyInspector\src\analysis\data_analysis.jl:1549
+
+┌ Info | computeFraction: The molecular fraction will be calculated using the fractions from out SF model
+└ @ d:\documents\phd\gfp\plots\lozano_2025\GalaxyInspector\src\analysis\compute_quantities\masses.jl:58
+
+┌ Info | computeFraction: The molecular fraction will be calculated using the fractions from out SF model
+└ @ d:\documents\phd\gfp\plots\lozano_2025\GalaxyInspector\src\analysis\compute_quantities\masses.jl:58
+
+┌ Info | 
+│ Density range - log₁₀(Σ [M⊙ kpc^-2]) 
+│   Simulation: Au6_MOL_test18 
+│   Snapshot:   128 
+│   Quantity:   molecular_mass 
+│   Field type: cells 
+│   Plane:      xy 
+│   Min - Max:  (3.8038103581816394, 7.231738258244481) 
+│   Mean:       5.85156668265269 
+│   Median:     5.841050988000493 
+│   Mode:       5.188715061367917
+└ @ d:\documents\phd\gfp\plots\lozano_2025\GalaxyInspector\src\analysis\data_analysis.jl:1549
+
