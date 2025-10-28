@@ -1,0 +1,25 @@
+####################################################################################################
+
+Simulation name:  SFM_064_T17
+Cosmological:     No
+Report units:     Physical
+
+####################################################################################################
+
+Number of snapshots:       801
+Number of group catalogs:  801
+
+Physical time range:       0.0 - 4.0 Gyr
+
+####################################################################################################
+
+First snapshot with star formation:
+
+	Snapshot:         snap_020.hdf5
+	Physical time:    0.1 Gyr
+	Number of stars:  1
+
+###################################################
+There is no subfind information for this snapshot!
+###################################################
+

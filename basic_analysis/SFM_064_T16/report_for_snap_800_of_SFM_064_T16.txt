@@ -1,0 +1,342 @@
+####################################################################################################
+
+Simulation name:  SFM_064_T16
+Physical time:    4.0 Gyr
+Cosmological:     No
+Report units:     Physical
+
+####################################################################################################
+
+Snapshot number:  801 (of 801)
+Snapshot path:    F:\simulations\current\SFM_064_T16\output\snap_800.hdf5
+
+Subfind number:   801 (of 801)
+Subfind path:     F:\simulations\current\SFM_064_T16\output\fof_subhalo_tab_800.hdf5
+
+####################################################################################################
+
+Global properties (full simulation box):
+
+	Cell/particle number (full simulation box):
+
+		Gas cells:               171841
+		HR DM particles:         262144
+		Stellar particles:       110008
+
+		Total count:             543993
+
+	Masses (full simulation box):
+
+		Gas cells:               1.98e11 M⊙
+		HR DM particles:         1.57e12 M⊙
+		Stellar particles:       9.4e10 M⊙
+
+		Total mass:              1.86e12 M⊙
+
+	Gas component masses (full simulation box):
+
+		Ionized mass:            1.7e11 M⊙ (86.0% of total gas mass)
+		Atomic mass:             2.39e10 M⊙ (12.1% of total gas mass)
+		Molecular mass:          2.29e9 M⊙ (1.16% of total gas mass)
+		Molecular mass (BR):     1.47e10 M⊙ (7.45% of total gas mass)
+		Neutral mass:            2.62e10 M⊙ (13.3% of total gas mass)
+		Metal mass:              1.41e9 M⊙ (0.712% of total gas mass)
+		Dust mass:               8.82e7 M⊙ (0.0446% of total gas mass)
+
+####################################################################################################
+Filtered box with:
+
+	Filter mode: all
+	Translation: global_cm
+	Rotation: global_pa
+####################################################################################################
+
+Global properties (filtered box):
+
+	Cell/particle number (filtered box):
+
+		Gas cells:               171841
+		HR DM particles:         262144
+		Stellar particles:       110008
+
+		Total count:             543993
+
+	Masses (filtered box):
+
+		Gas cells:               1.98e11 M⊙
+		HR DM particles:         1.57e12 M⊙
+		Stellar particles:       9.4e10 M⊙
+
+		Total mass:              1.86e12 M⊙
+
+	Gas component masses (filtered box):
+
+		Ionized mass:            1.7e11 M⊙ (86.0% of total gas mass)
+		Atomic mass:             2.39e10 M⊙ (12.1% of total gas mass)
+		Molecular mass:          2.29e9 M⊙ (1.16% of total gas mass)
+		Molecular mass (BR):     1.47e10 M⊙ (7.45% of total gas mass)
+		Neutral mass:            2.62e10 M⊙ (13.3% of total gas mass)
+		Metal mass:              1.41e9 M⊙ (0.712% of total gas mass)
+		Dust mass:               8.82e7 M⊙ (0.0446% of total gas mass)
+
+	Center of mass (filtered box):
+
+		Gas cells:               [2.74491, 2.75043, 2.74732] Mpc
+		Distance to global CM:   5.444942226079255 kpc
+
+		HR DM particles:         [2.74996, 2.7478, 2.7495] Mpc
+		Distance to global CM:   0.6495294779862106 kpc
+
+		Stellar particles:       [2.7499, 2.74757, 2.7493] Mpc
+		Distance to global CM:   0.6941079896605631 kpc
+
+		Global center of mass:   [2.74942, 2.74807, 2.74925] Mpc
+
+	Fraction of gas cells that have entered the SF routine (filtered box):
+
+		51.9% of the cells
+		59.0% of the mass
+
+	Properties of the gas that has formed stars (filtered box):
+
+		Integration time:
+
+			Mean:    0.4504 Myr
+			Median:  0.4774 Myr
+			Mode:    0.4774 Myr
+			Minimum: 0.02984 Myr
+			Maximum: 0.9549 Myr
+
+		Integration time enclosing X% of the stellar mass:
+
+			0.4774 Myr (50%)
+			0.9549 Myr (90%)
+			0.9549 Myr (95%)
+
+		τS:
+
+			Mean:    0.01065 Myr
+			Median:  0.0103 Myr
+			Mode:    0.008783 Myr
+			Minimum: 0.0003593 Myr
+			Maximum: 0.03002 Myr
+
+		τS enclosing X% of the stellar mass:
+
+			0.01056 Myr (50%)
+			0.01717 Myr (90%)
+			0.01954 Myr (95%)
+
+		Cell density:
+
+			Mean:    12.66 cm^-3
+			Median:  3.558 cm^-3
+			Mode:    4.893 cm^-3
+			Minimum: 0.419 cm^-3
+			Maximum: 2924.0 cm^-3
+
+		Cell density enclosing X% of the stellar mass:
+
+			3.386 cm^-3 (50%)
+			15.29 cm^-3 (90%)
+			28.23 cm^-3 (95%)
+
+		Metallicity:
+
+			Mean:    1.971 Z⊙
+			Median:  1.433 Z⊙
+			Mode:    0.0 Z⊙
+			Minimum: 0.0 Z⊙
+			Maximum: 14.35 Z⊙
+
+		Metallicity enclosing X% of the stellar mass:
+
+			1.527 Z⊙ (50%)
+			4.656 Z⊙ (90%)
+			5.664 Z⊙ (95%)
+
+		Photodissociation parameter (ηd):
+
+			Mean:    148.3 
+			Median:  109.4 
+			Mode:    71.04 
+			Minimum: 20.74 
+			Maximum: 811.0 
+
+		Photodissociation parameter (ηd) enclosing X% of the stellar mass:
+
+			110.0  (50%)
+			243.1  (90%)
+			398.1  (95%)
+
+		Photoionization parameter (ηi):
+
+			Mean:    690.5 
+			Median:  612.8 
+			Mode:    354.6 
+			Minimum: 114.8 
+			Maximum: 2943.0 
+
+		Photoionization parameter (ηi) enclosing X% of the stellar mass:
+
+			613.7  (50%)
+			1220.0  (90%)
+			1454.0  (95%)
+
+		Mass recycling parameter (R):
+
+			Mean:    0.2133 
+			Median:  0.217 
+			Mode:    0.2242 
+			Minimum: 0.1908 
+			Maximum: 0.2242 
+
+		Mass recycling parameter (R) enclosing X% of the stellar mass:
+
+			0.218  (50%)
+			0.2242  (90%)
+			0.2242  (95%)
+
+		Metallicity of the supernova ejecta (Zsn):
+
+			Mean:    0.1668 
+			Median:  0.1686 
+			Mode:    0.1776 
+			Minimum: 0.1341 
+			Maximum: 0.1776 
+
+		Metallicity of the supernova ejecta (Zsn) enclosing X% of the stellar mass:
+
+			0.1688  (50%)
+			0.1776  (90%)
+			0.1776  (95%)
+
+		Parent gas mass:
+
+			Mean:    1.31e6 M⊙
+			Median:  1.284e6 M⊙
+			Mode:    1.116e6 M⊙
+			Minimum: 214200.0 M⊙
+			Maximum: 2.233e6 M⊙
+
+		Parent gas mass enclosing X% of the stellar mass:
+
+			1.357e6 M⊙ (50%)
+			1.807e6 M⊙ (90%)
+			1.93e6 M⊙ (95%)
+
+		Parent SFR:
+
+			Mean:    0.00974 M⊙ yr^-1
+			Median:  0.005013 M⊙ yr^-1
+			Mode:    0.009617 M⊙ yr^-1
+			Minimum: 9.881e-7 M⊙ yr^-1
+			Maximum: 0.3215 M⊙ yr^-1
+
+		Parent SFR enclosing X% of the stellar mass:
+
+			0.005192 M⊙ yr^-1 (50%)
+			0.02429 M⊙ yr^-1 (90%)
+			0.03634 M⊙ yr^-1 (95%)
+
+		Parent gas pressure:
+
+			Mean:    8.683e-10 dyn cm^-2
+			Median:  5.305e-11 dyn cm^-2
+			Mode:    8.943e-11 dyn cm^-2
+			Minimum: 7.194e-13 dyn cm^-2
+			Maximum: 3.662e-7 dyn cm^-2
+
+		Parent gas pressure enclosing X% of the stellar mass:
+
+			4.88e-11 dyn cm^-2 (50%)
+			5.118e-10 dyn cm^-2 (90%)
+			1.246e-9 dyn cm^-2 (95%)
+
+	ODE parameters for the gas cells (filtered box):
+
+		Integration time:
+
+			Mean:    0.7589 Myr
+			Median:  0.9549 Myr
+			Mode:    0.9549 Myr
+			Minimum: 0.05968 Myr
+			Maximum: 1.91 Myr
+
+		τS:
+
+			Mean:    0.02784 Myr
+			Median:  0.02972 Myr
+			Mode:    0.03001 Myr
+			Minimum: 0.006339 Myr
+			Maximum: 0.03004 Myr
+
+		Cell density:
+
+			Mean:    0.5669 cm^-3
+			Median:  0.4274 cm^-3
+			Mode:    0.419 cm^-3
+			Minimum: 0.4184 cm^-3
+			Maximum: 9.394 cm^-3
+
+		Metallicity:
+
+			Mean:    1.187 Z⊙
+			Median:  0.7815 Z⊙
+			Mode:    0.8553 Z⊙
+			Minimum: 0.0 Z⊙
+			Maximum: 11.1 Z⊙
+
+		Photodissociation parameter (ηd):
+
+			Mean:    377.5 
+			Median:  219.3 
+			Mode:    811.0 
+			Minimum: 19.59 
+			Maximum: 1709.0 
+
+		Photoionization parameter (ηi):
+
+			Mean:    1538.0 
+			Median:  1181.0 
+			Mode:    2943.0 
+			Minimum: 104.3 
+			Maximum: 6246.0 
+
+		Mass recycling parameter (R):
+
+			Mean:    0.2067 
+			Median:  0.2098 
+			Mode:    0.2242 
+			Minimum: 0.1908 
+			Maximum: 0.2242 
+
+		Metallicity of the supernova ejecta (Zsn):
+
+			Mean:    0.1615 
+			Median:  0.1651 
+			Mode:    0.1776 
+			Minimum: 0.1341 
+			Maximum: 0.1776 
+
+	Normalized angular momentum (filtered box):
+
+		Gas cells:               [-0.00995, 0.00473, 1.0]
+		HR DM particles:         [-0.00282, -0.00354, 1.0]
+		Stellar particles:       [-0.0267, -0.0176, 0.999]
+
+		Global angular momentum: [-0.00405, -0.00255, 1.0]
+
+	Spin parameter (R = 40.0 kpc - filtered box):
+
+		Gas cells:               1.04
+		HR DM particles:         0.229
+		Stellar particles:       0.284
+
+		Total spin parameter:    0.204
+
+	Total height of a cylinder, of infinite radius, containing X% of the stellar mass (filtered box):
+
+		5.148 kpc (90%)
+		7.026 kpc (95%)
+
