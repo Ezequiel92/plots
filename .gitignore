@@ -1,3 +1,4 @@
 tests
 equilibrium
-basic_analysis/_bak
+#/basic_analysis/*
+#!/basic_analysis/basic_analysis.jl
