@@ -1,4 +1,4 @@
 tests
 equilibrium
-#/basic_analysis/*
-#!/basic_analysis/basic_analysis.jl
+/basic_analysis/*
+!/basic_analysis/basic_analysis.jl
