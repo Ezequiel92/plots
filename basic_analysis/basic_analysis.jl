@@ -38,6 +38,7 @@ function basic_analysis(
     simulation_path::String,
     base_out_path::String,
     logging::Bool;
+    video::Bool=false,
     label::AbstractString=basename(simulation_path),
 )::Nothing
 
@@ -216,7 +217,7 @@ function basic_analysis(
     efficiencyHistogram(
         [simulation_path],
         n_snapshots;
-        range=(1.0e-4, 1.0),
+        range=(1.0e-6, 1.0),
         output_path,
         trans_mode,
         filter_mode,
@@ -231,9 +232,10 @@ function basic_analysis(
 
     if sfm
 
+        #TODO
         molla_quantities = [
             :stellar_area_density,
-            :ode_molecular_area_density,
+            :ode_molecular_stellar_area_density,
             :sfr_area_density,
             :ode_atomic_area_density,
             :O_stellar_abundance,
@@ -809,38 +811,43 @@ function basic_analysis(
         filter_mode,
     )
 
-    # ################################################################################################
-    # # Stellar and gas density video, face-on/edge-on projections
-    # ################################################################################################
+    if video
 
-    # if logging
-    #     println(log_file, "#"^100)
-    #     println(log_file, "# Stellar and gas density video, face-on/edge-on projections")
-    #     println(log_file, "#"^100, "\n")
-    # end
+        ############################################################################################
+        # Stellar and gas density video, face-on/edge-on projections
+        ############################################################################################
 
-    # # Choose the correct transformations and filters
-    # if cosmological
-    #     trans_mode   = :stellar_subhalo
-    #     filter_mode  = :subhalo
-    #     extra_filter = dd -> GalaxyInspector.filterBySphere(dd, (0.0u"kpc", R1), :zero)
-    # else
-    #     trans_mode   = :stellar_box
-    #     filter_mode  = :all
-    #     extra_filter = GalaxyInspector.filterNothing
-    # end
+        if logging
+            println(log_file, "#"^100)
+            println(log_file, "# Stellar and gas density video, face-on/edge-on projections")
+            println(log_file, "#"^100, "\n")
+        end
 
-    # evolutionVideo(
-    #     [simulation_path],
-    #     :ode_molecular;
-    #     field_type=:cells,
-    #     box_size=R3,
-    #     output_path,
-    #     density_range=(NaN, NaN),
-    #     trans_mode,
-    #     filter_mode,
-    #     save_data=true,
-    # )
+        # Choose the correct transformations and filters
+        if cosmological
+            trans_mode   = :stellar_subhalo
+            filter_mode  = :subhalo
+            extra_filter = dd -> GalaxyInspector.filterBySphere(dd, (0.0u"kpc", R1), :zero)
+        else
+            trans_mode   = :stellar_box
+            filter_mode  = :all
+            extra_filter = GalaxyInspector.filterNothing
+        end
+
+        #TODO
+        evolutionVideo(
+            [simulation_path],
+            :ode_molecular_stellar;
+            field_type=:cells,
+            box_size=R3,
+            output_path,
+            density_range=(NaN, NaN),
+            trans_mode,
+            filter_mode,
+            save_data=true,
+        )
+
+    end
 
     ##############
     # Close files
@@ -910,30 +917,36 @@ function comparison(
     if sfm
 
         quantities = [
+            :gas_mass,
             :ode_ionized_mass,
             :ode_atomic_mass,
-            :ode_molecular_mass,
-            :ode_dust_mass,
+            :ode_molecular_stellar_mass,
             :ode_metals_mass,
+            :ode_dust_mass,
+            :ode_neutral_mass,
+            :ode_cold_mass,
+            :stellar_mass,
             :sfr,
         ]
 
     else
 
         quantities = [
+            :gas_mass,
             :ionized_mass,
             :br_atomic_mass,
             :br_molecular_mass,
+            :neutral_mass,
             :Z_gas_mass,
-            :sfr,
             :stellar_mass,
+            :sfr,
         ]
 
     end
 
-    smooths = [0, 0, 0, 0, n_snapshots ÷ 5, 0]
+    ff_request = Dict(:stellar => ["POS "])
 
-    for (quantity, smooth) in zip(quantities, smooths)
+    for quantity in quantities
 
         if logging
             println(log_file, "#"^100)
@@ -950,7 +963,7 @@ function comparison(
             filename="$(quantity)",
             da_functions=[GalaxyInspector.daEvolution],
             da_args=[(:physical_time, quantity)],
-            da_kwargs=[(; trans_mode, filter_mode, extra_filter, smooth)],
+            da_kwargs=[(; trans_mode, filter_mode, extra_filter, ff_request)],
             x_unit=u"Gyr",
             y_unit=y_plot_params.unit,
             y_exp_factor=y_plot_params.exp_factor,
@@ -994,21 +1007,28 @@ function comparison(
         extra_filter = GalaxyInspector.filterNothing
     end
 
+    #TODO
     if sfm
-        gas_type = :ode
-    else
-        gas_type = :br
-    end
-
-    quantities = [
+        quantities = [
         :stellar_area_density,
-        Symbol(gas_type, :_molecular_area_density),
+        :ode_molecular_stellar_area_density,
         :sfr_area_density,
-        Symbol(gas_type, :_atomic_area_density),
+        :ode_atomic_area_density,
         :O_stellar_abundance,
         :N_stellar_abundance,
         :C_stellar_abundance,
     ]
+    else
+        quantities = [
+        :stellar_area_density,
+        :br_molecular_area_density,
+        :sfr_area_density,
+        :br_atomic_area_density,
+        :O_stellar_abundance,
+        :N_stellar_abundance,
+        :C_stellar_abundance,
+    ]
+    end
 
     for quantity in quantities
 
@@ -1214,6 +1234,9 @@ function (@main)(ARGS)
     # If logging into a file will be enable
     LOGGING = true
 
+    # If a video of the evolution will be made (vary slow)
+    VIDEO = false
+
     # Output folder
     BASE_OUT_PATH = "./"
 
@@ -1262,34 +1285,49 @@ function (@main)(ARGS)
     #     ],
     # )
 
-    # ################################################################################################
-    # # Basic analysis
-    # ################################################################################################
+    ################################################################################################
+    # Basic analysis
+    ################################################################################################
 
-    # SIMULATIONS = joinpath.(
-    #     "F:/simulations/",
-    #     [
-    #         "current/SFM_01",
-    #         "current/test_cosmo_03",
-    #     ]
+    SIMULATIONS = joinpath.(
+        "F:/simulations/",
+        [
+            "current/SFM_01",
+            "current/SFM_06",
+            "current/SFM_06_CRHO50",
+        ]
+    )
+
+    for simulation in SIMULATIONS
+        basic_analysis(simulation, BASE_OUT_PATH, LOGGING; video=VIDEO)
+    end
+
+    # ###################
+    # # Paper comparison
+    # ###################
+
+    # comparison(
+    #     joinpath.("F:/simulations/current/", ["SFM_01", "SFM_06"]),
+    #     joinpath(BASE_OUT_PATH, "comparison/paper_comparison"),
+    #     LOGGING;
+    #     labels=[
+    #         "Paper I",
+    #         "Paper II",
+    #     ],
     # )
 
-    # for simulation in SIMULATIONS
-    #     basic_analysis(simulation, BASE_OUT_PATH, LOGGING)
-    # end
+    # #####################
+    # # Cluster comparison
+    # #####################
 
-    #############
-    # Comparison 1
-    #############
-
-    comparison(
-        joinpath.("F:/simulations/current/", ["SFM_01", "test_cosmo_03"]),
-        joinpath(BASE_OUT_PATH, "comparison/eq_comparison"),
-        LOGGING;
-        labels=[
-            L"SFM_01",
-            L"SFM_06",
-        ],
-    )
+    # comparison(
+    #     joinpath.("F:/simulations/current/", ["SFM_06", "SFM_06_CRHO50"]),
+    #     joinpath(BASE_OUT_PATH, "comparison/cluster_comparison"),
+    #     LOGGING;
+    #     labels=[
+    #         L"C_\rho = 100",
+    #         L"C_\rho = 50",
+    #     ],
+    # )
 
 end
