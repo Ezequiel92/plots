@@ -232,7 +232,6 @@ function basic_analysis(
 
     if sfm
 
-        #TODO
         molla_quantities = [
             :stellar_area_density,
             :ode_molecular_stellar_area_density,
@@ -834,7 +833,6 @@ function basic_analysis(
             extra_filter = GalaxyInspector.filterNothing
         end
 
-        #TODO
         evolutionVideo(
             [simulation_path],
             :ode_molecular_stellar;
@@ -1007,7 +1005,6 @@ function comparison(
         extra_filter = GalaxyInspector.filterNothing
     end
 
-    #TODO
     if sfm
         quantities = [
         :stellar_area_density,
@@ -1241,60 +1238,22 @@ function (@main)(ARGS)
     BASE_OUT_PATH = "./"
 
     ################################################################################################
-    # Comparison
-    ################################################################################################
-
-    # #############
-    # # Crho tests
-    # #############
-
-    # comparison(
-    #     joinpath.("F:/simulations/current/", ["SFM_064_T14", "SFM_064_T15", "SFM_064_T09"]),
-    #     joinpath(BASE_OUT_PATH, "comparison/Crho_test"),
-    #     LOGGING;
-    #     labels=[L"C_\rho = 1", L"C_\rho = 50", L"C_\rho = 100"],
-    # )
-
-    # #############
-    # # R⊙ tests
-    # #############
-
-    # comparison(
-    #     joinpath.("F:/simulations/current/", ["SFM_064_T10", "SFM_064_T09", "SFM_064_T11"]),
-    #     joinpath(BASE_OUT_PATH, "comparison/Rsun_test"),
-    #     LOGGING;
-    #     labels=[
-    #         L"R_\odot = 1.0 \times 10^{-17} \, \mathrm{cm^3 \, s^{-1}}",
-    #         L"R_\odot = 3.5 \times 10^{-17} \, \mathrm{cm^3 \, s^{-1}}",
-    #         L"R_\odot = 5.0 \times 10^{-17} \, \mathrm{cm^3 \, s^{-1}}",
-    #     ],
-    # )
-
-    # #############
-    # # Zeff tests
-    # #############
-
-    # comparison(
-    #     joinpath.("F:/simulations/current/", ["SFM_064_T12", "SFM_064_T09", "SFM_064_T13"]),
-    #     joinpath(BASE_OUT_PATH, "comparison/Zeff_test"),
-    #     LOGGING;
-    #     labels=[
-    #         L"Z_\text{eff} = 1.0 \times 10^{-4} \, Z_\odot",
-    #         L"Z_\text{eff} = 1.0 \times 10^{-3} \, Z_\odot",
-    #         L"Z_\text{eff} = 1.0 \times 10^{-2} \, Z_\odot",
-    #     ],
-    # )
-
-    ################################################################################################
     # Basic analysis
     ################################################################################################
 
     SIMULATIONS = joinpath.(
         "F:/simulations/",
         [
-            "current/SFM_01",
-            "current/SFM_06",
-            "current/SFM_06_CRHO50",
+            # "current/SFM_01",
+            # "current/SFM_02",
+            # "current/SFM_03",
+            # "current/SFM_04",
+            "current/SFM_05",
+            # "current/SFM_06",
+            # "current/SFM_07",
+            # "current/SFM_08",
+            # "current/SFM_09",
+            # "current/SFM_06_CRHO50",
         ]
     )
 
@@ -1302,32 +1261,50 @@ function (@main)(ARGS)
         basic_analysis(simulation, BASE_OUT_PATH, LOGGING; video=VIDEO)
     end
 
-    # ###################
-    # # Paper comparison
-    # ###################
+    # ################################################################################################
+    # # Comparison
+    # ################################################################################################
+
+    # comparison(
+    #     joinpath.("F:/simulations/current/", ["SFM_01", "SFM_02"]),
+    #     joinpath(BASE_OUT_PATH, "comparison/SFM_01_02"),
+    #     LOGGING;
+    #     labels=["SFM_01","SFM_02"],
+    # )
+
+    # comparison(
+    #     joinpath.("F:/simulations/current/", ["SFM_02", "SFM_03"]),
+    #     joinpath(BASE_OUT_PATH, "comparison/SFM_02_03"),
+    #     LOGGING;
+    #     labels=["SFM_02", "SFM_03"],
+    # )
+
+    # comparison(
+    #     joinpath.("F:/simulations/current/", ["SFM_03", "SFM_04"]),
+    #     joinpath(BASE_OUT_PATH, "comparison/SFM_03_04"),
+    #     LOGGING;
+    #     labels=["SFM_03", "SFM_04"],
+    # )
+
+    # comparison(
+    #     joinpath.("F:/simulations/current/", ["SFM_04", "SFM_05"]),
+    #     joinpath(BASE_OUT_PATH, "comparison/SFM_04_05"),
+    #     LOGGING;
+    #     labels=["SFM_04", "SFM_05"],
+    # )
+
+    comparison(
+        joinpath.("F:/simulations/current/", ["SFM_05", "SFM_06"]),
+        joinpath(BASE_OUT_PATH, "comparison/SFM_05_06"),
+        LOGGING;
+        labels=["SFM_05", "SFM_06"],
+    )
 
     # comparison(
     #     joinpath.("F:/simulations/current/", ["SFM_01", "SFM_06"]),
-    #     joinpath(BASE_OUT_PATH, "comparison/paper_comparison"),
+    #     joinpath(BASE_OUT_PATH, "comparison/SFM_01_06"),
     #     LOGGING;
-    #     labels=[
-    #         "Paper I",
-    #         "Paper II",
-    #     ],
-    # )
-
-    # #####################
-    # # Cluster comparison
-    # #####################
-
-    # comparison(
-    #     joinpath.("F:/simulations/current/", ["SFM_06", "SFM_06_CRHO50"]),
-    #     joinpath(BASE_OUT_PATH, "comparison/cluster_comparison"),
-    #     LOGGING;
-    #     labels=[
-    #         L"C_\rho = 100",
-    #         L"C_\rho = 50",
-    #     ],
+    #     labels=["Paper I", "Paper II"],
     # )
 
 end
