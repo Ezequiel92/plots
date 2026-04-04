@@ -3,7 +3,6 @@ cd(@__DIR__)
 using Pkg
 
 Pkg.activate("../../codes/GalaxyInspector/")
-Pkg.instantiate()
 
 using CairoMakie, LaTeXStrings, Unitful, UnitfulAstro
 
@@ -14,6 +13,7 @@ function basic_analysis(
     simulation_path::String,
     base_out_path::String,
     logging::Bool;
+    icGen::Function=initialConditionFunction,
     video::Bool=false,
     label::AbstractString=basename(simulation_path),
 )::Nothing
@@ -64,576 +64,599 @@ function basic_analysis(
         extra_filter = GalaxyInspector.filterNothing
     end
 
-    ################################################################################################
-    # Report files
-    ################################################################################################
-
-    if logging
-        println(log_file, "#"^100)
-        println(log_file, "# Report files")
-        println(log_file, "#"^100, "\n")
-    end
-
-    simulationReport([simulation_path]; output_path)
-
-    snapshotReport(
-        [simulation_path],
-        [n_snapshots];
-        output_path,
-        trans_mode,
-        filter_mode,
-    )
-
-    ################################################################################################
-    # SFR vs. physical time
-    ################################################################################################
-
-    if logging
-        println(log_file, "#"^100)
-        println(log_file, "# SFR vs. physical time")
-        println(log_file, "#"^100, "\n")
-    end
-
-    timeSeries(
-        [simulation_path],
-        :physical_time,
-        :sfr;
-        output_path,
-        trans_mode,
-        filter_mode,
-        smooth=n_snapshots > 300 ? n_snapshots ÷ 4 : 0,
-        theme=Theme(
-            palette=(color=[GalaxyInspector.WONG_ORANGE],),
-            size=(1320, 880),
-            Axis=(aspect=nothing, xticks=0:14),
-        ),
-    )
-
-    ################################################################################################
-    # Stellar mass vs. physical time
-    ################################################################################################
-
-    if logging
-        println(log_file, "#"^100)
-        println(log_file, "# Stellar mass vs. physical time")
-        println(log_file, "#"^100, "\n")
-    end
-
-    timeSeries(
-        [simulation_path],
-        :physical_time,
-        :stellar_mass;
-        output_path,
-        trans_mode,
-        filter_mode,
-        theme=Theme(
-            palette=(color=[GalaxyInspector.WONG_ORANGE],),
-            size=(1320, 880),
-            Axis=(aspect=nothing, xticks=0:14),
-        ),
-    )
-
-    ################################################################################################
-    # Stellar surface density profile of the last snapshot, comparison with Agertz et al. (2021)
-    ################################################################################################
-
-    if logging
-        println(log_file, "#"^100)
-        println(
-            log_file,
-            "# Stellar surface density profile of the last snapshot, comparison with Agertz et al. \
-            (2021)",
-        )
-        println(log_file, "#"^100, "\n")
-    end
-
-    compareAgertz2021(
-        [simulation_path],
-        n_snapshots;
-        output_path,
-        trans_mode,
-        filter_mode,
-        sim_labels=[label],
-    )
-
-    ################################################################################################
-    # Circularity histogram of the last snapshot, radio separated
-    ################################################################################################
-
-    if logging
-        println(log_file, "#"^100)
-        println(log_file, "# Circularity histogram of the last snapshot, radio separated")
-        println(log_file, "#"^100, "\n")
-    end
-
-    circularityHistogram(
-        [simulation_path],
-        n_snapshots;
-        R_in=R2,
-        R_out=R1,
-        output_path,
-        trans_mode,
-        filter_mode,
-    )
-
-    ################################################################################################
-    # Efficiency per free-fall time histograms of the last snapshot
-    ################################################################################################
-
-    if logging
-        println(log_file, "#"^100)
-        println(log_file, "# Efficiency per free-fall time histograms of the last snapshot")
-        println(log_file, "#"^100, "\n")
-    end
-
-    efficiencyHistogram(
-        [simulation_path],
-        n_snapshots;
-        range=(1.0e-6, 1.0),
-        output_path,
-        trans_mode,
-        filter_mode,
-        stellar_ff=GalaxyInspector.filterByStellarAge,
-        ff_request=Dict(:stellar => ["GAGE"]),
-        labels=["Young stars", "Gas"],
-    )
-
-    ################################################################################################
-    # Comparison with Feldmann (2020)
-    ################################################################################################
-
-    if logging
-        println(log_file, "#"^100)
-        println(log_file, "# Comparison with Feldmann (2020)")
-        println(log_file, "#"^100, "\n")
-    end
-
-    compareFeldmann2020(
-        [simulation_path],
-        :stellar,
-        :molecular;
-        slice=n_snapshots,
-        scatter=true,
-        xlog=true,
-        ylog=true,
-        output_path,
-        trans_mode,
-        filter_mode,
-    )
-
-    compareFeldmann2020(
-        [simulation_path],
-        :atomic,
-        :molecular;
-        slice=n_snapshots,
-        scatter=true,
-        xlog=true,
-        ylog=true,
-        output_path,
-        trans_mode,
-        filter_mode,
-    )
-
-    compareFeldmann2020(
-        [simulation_path],
-        :stellar,
-        :sfr;
-        slice=n_snapshots,
-        scatter=true,
-        xlog=true,
-        ylog=true,
-        output_path,
-        trans_mode,
-        filter_mode,
-    )
-
-    ################################################################################################
-    # Profiles for the last snapshot, comparison with Mollá et al. (2015)
-    ################################################################################################
-
-    if sfm
-
-        molla_quantities = [
-            :stellar_area_density,
-            :ode_molecular_stellar_area_density,
-            :sfr_area_density,
-            :ode_atomic_area_density,
-            :O_stellar_abundance,
-            :N_stellar_abundance,
-            :C_stellar_abundance,
-        ]
-
-    else
-
-        molla_quantities = [
-            :stellar_area_density,
-            :br_molecular_area_density,
-            :sfr_area_density,
-            :br_atomic_area_density,
-            :O_stellar_abundance,
-            :N_stellar_abundance,
-            :C_stellar_abundance,
-        ]
-
-    end
-
-    for quantity in molla_quantities
-
-        if logging
-            println(log_file, "#"^100)
-            println(
-                log_file,
-                "# $(quantity) profile for the last snapshot, comparison with Mollá et al. (2015)",
-            )
-            println(log_file, "#"^100, "\n")
-        end
-
-        compareMolla2015(
-            [simulation_path],
-            n_snapshots,
-            quantity;
-            output_path=joinpath(output_path, "molla_2015"),
-            trans_mode,
-            filter_mode,
-            sim_labels=[label],
-            theme=Theme(Legend=(halign=:right, valign=:top, nbanks=1)),
-        )
-
-    end
-
-    ################################################################################################
-    # Resolved Kennicutt–Schmidt law of the last snapshot, scatter with square grid
-    ################################################################################################
-
-    if logging
-        println(log_file, "#"^100)
-        println(
-            log_file,
-            "# Resolved Kennicutt–Schmidt law of the last snapshot, scatter with square grid",
-        )
-        println(log_file, "#"^100, "\n")
-    end
-
-    temp_folder = joinpath(output_path, "_ks_law")
-
-    ###################
-    # Molecular KS law
-    ###################
-
-    if logging
-        println(log_file, "#"^50)
-        println(log_file, "# Molecular KS law")
-        println(log_file, "#"^50, "\n")
-    end
-
-    kennicuttSchmidtLaw(
-        [simulation_path],
-        n_snapshots;
-        quantity=:molecular,
-        grid_size=30.0u"kpc",
-        bin_size=1.5u"kpc",
-        post_processing=GalaxyInspector.ppSun2023!,
-        pp_kwargs=(; color=GalaxyInspector.WONG_ORANGE),
-        fit=true,
-        output_file=joinpath(temp_folder, "sun2023_molecular.png"),
-        trans_mode,
-        filter_mode,
-        sim_labels=[label],
-        theme=Theme(
-            Legend=(margin=(10, 0, 0, 0),),
-            Axis=(
-                limits=(-2.5, 3.5, -4.5, 0.5),
-                xticks=-1:1:3,
-                yticks=-4:1:0,
-            ),
-        ),
-    )
-
-    kennicuttSchmidtLaw(
-        [simulation_path],
-        n_snapshots;
-        quantity=:molecular,
-        grid_size=30.0u"kpc",
-        bin_size=0.8u"kpc",
-        post_processing=GalaxyInspector.ppLeroy2008!,
-        pp_kwargs=(; color=GalaxyInspector.WONG_ORANGE),
-        fit=true,
-        output_file=joinpath(temp_folder, "leroy2008_molecular.png"),
-        trans_mode,
-        filter_mode,
-        sim_labels=[label],
-        theme=Theme(
-            Legend=(margin=(10, 0, 0, 0),),
-            Axis=(
-                limits=(-2.5, 3.5, -4.5, 0.5),
-                xticks=-1:1:3,
-                yticks=-4:1:0,
-            ),
-        ),
-    )
-
-    molecular_paths = [
-        joinpath(temp_folder, "leroy2008_molecular.png"),
-        joinpath(temp_folder, "sun2023_molecular.png"),
-    ]
-
-    GalaxyInspector.hvcatImages(
-        1,
-        molecular_paths;
-        output_path=joinpath(temp_folder, "molecular.png"),
-    )
-
-    ################
-    # Atomic KS law
-    ################
-
-    if logging
-        println(log_file, "#"^50)
-        println(log_file, "# Atomic KS law")
-        println(log_file, "#"^50, "\n")
-    end
-
-    kennicuttSchmidtLaw(
-        [simulation_path],
-        n_snapshots;
-        quantity=:atomic,
-        grid_size=30.0u"kpc",
-        bin_size=0.6u"kpc",
-        post_processing=GalaxyInspector.ppBigiel2010!,
-        pp_kwargs=(; galaxy=:all, quantity=:atomic, color=GalaxyInspector.WONG_ORANGE),
-        fit=false,
-        output_file=joinpath(temp_folder, "bigiel2010_atomic.png"),
-        trans_mode,
-        filter_mode,
-        sim_labels=[label],
-        theme=Theme(
-            Legend=(margin=(10, 0, 0, 20),),
-            Axis=(
-                limits=(-1.8, 2.2, -4.5, 0.5),
-                xticks=0:0.5:2,
-                yticks=-4:1:0,
-            ),
-        ),
-    )
-
-    kennicuttSchmidtLaw(
-        [simulation_path],
-        n_snapshots;
-        quantity=:atomic,
-        grid_size=30.0u"kpc",
-        bin_size=0.8u"kpc",
-        post_processing=GalaxyInspector.ppLeroy2008!,
-        pp_kwargs=(; quantity=:atomic, color=GalaxyInspector.WONG_ORANGE),
-        fit=false,
-        output_file=joinpath(temp_folder, "leroy2008_atomic.png"),
-        trans_mode,
-        filter_mode,
-        sim_labels=[label],
-        theme=Theme(
-            Legend=(margin=(10, 0, 0, 20),),
-            Axis=(
-                limits=(-1.8, 2.2, -4.5, 0.5),
-                xticks=0:0.5:2,
-                yticks=-4:1:0,
-            ),
-        ),
-    )
-
-    atomic_paths = [
-        joinpath(temp_folder, "leroy2008_atomic.png"),
-        joinpath(temp_folder, "bigiel2010_atomic.png"),
-    ]
-
-    GalaxyInspector.hvcatImages(
-        1,
-        atomic_paths;
-        output_path=joinpath(temp_folder, "atomic.png"),
-    )
-
-    #################
-    # Neutral KS law
-    #################
-
-    if logging
-        println(log_file, "#"^50)
-        println(log_file, "# Neutral KS law")
-        println(log_file, "#"^50, "\n")
-    end
-
-    kennicuttSchmidtLaw(
-        [simulation_path],
-        n_snapshots;
-        quantity=:neutral,
-        grid_size=30.0u"kpc",
-        bin_size=0.6u"kpc",
-        post_processing=GalaxyInspector.ppBigiel2010!,
-        pp_kwargs=(; galaxy=:all, quantity=:neutral, color=GalaxyInspector.WONG_ORANGE),
-        fit=false,
-        output_file=joinpath(temp_folder, "bigiel2010_neutral.png"),
-        trans_mode,
-        filter_mode,
-        sim_labels=[label],
-        theme=Theme(
-            Legend=(margin=(10, 0, 0, 20),),
-            Axis=(
-                limits=(0.4, 2.6, -4.5, 0.5),
-                xticks=0.5:0.5:2.5,
-                yticks=-4:1:0,
-            ),
-        ),
-    )
-
-    kennicuttSchmidtLaw(
-        [simulation_path],
-        n_snapshots;
-        quantity=:neutral,
-        grid_size=30.0u"kpc",
-        bin_size=0.8u"kpc",
-        post_processing=GalaxyInspector.ppLeroy2008!,
-        pp_kwargs=(; quantity=:neutral, color=GalaxyInspector.WONG_ORANGE),
-        fit=false,
-        output_file=joinpath(temp_folder, "leroy2008_neutral.png"),
-        trans_mode,
-        filter_mode,
-        sim_labels=[label],
-        theme=Theme(
-            Legend=(margin=(10, 0, 0, 20),),
-            Axis=(
-                limits=(0.4, 2.6, -4.5, 0.5),
-                xticks=0.5:0.5:2.5,
-                yticks=-4:1:0,
-            ),
-        ),
-    )
-
-    neutral_paths = [
-        joinpath(temp_folder, "leroy2008_neutral.png"),
-        joinpath(temp_folder, "bigiel2010_neutral.png"),
-    ]
-
-    GalaxyInspector.hvcatImages(
-        1,
-        neutral_paths;
-        output_path=joinpath(temp_folder, "neutral.png"),
-    )
-
-    ###################
-    # Total gas KS law
-    ###################
-
-    if logging
-        println(log_file, "#"^50)
-        println(log_file, "# Total gas KS law")
-        println(log_file, "#"^50, "\n")
-    end
-
-    kennicuttSchmidtLaw(
-        [simulation_path],
-        n_snapshots;
-        quantity=:gas,
-        grid_size=30.0u"kpc",
-        bin_size=0.6u"kpc",
-        post_processing=GalaxyInspector.ppBigiel2010!,
-        pp_kwargs=(; galaxy=:all, quantity=:neutral, color=GalaxyInspector.WONG_ORANGE),
-        fit=false,
-        output_file=joinpath(temp_folder, "bigiel2010_total.png"),
-        trans_mode,
-        filter_mode,
-        sim_labels=[label],
-        theme=Theme(
-            Legend=(margin=(10, 0, 0, 20),),
-            Axis=(
-                limits=(0.4, 2.6, -4.5, 0.5),
-                xticks=0.5:0.5:2.5,
-                yticks=-4:1:0,
-            ),
-        ),
-    )
-
-    kennicuttSchmidtLaw(
-        [simulation_path],
-        n_snapshots;
-        quantity=:gas,
-        grid_size=30.0u"kpc",
-        bin_size=0.8u"kpc",
-        post_processing=GalaxyInspector.ppLeroy2008!,
-        pp_kwargs=(; quantity=:neutral, color=GalaxyInspector.WONG_ORANGE),
-        fit=false,
-        output_file=joinpath(temp_folder, "leroy2008_total.png"),
-        trans_mode,
-        filter_mode,
-        sim_labels=[label],
-        theme=Theme(
-            Legend=(margin=(10, 0, 0, 20),),
-            Axis=(
-                limits=(0.4, 2.6, -4.5, 0.5),
-                xticks=0.5:0.5:2.5,
-                yticks=-4:1:0,
-            ),
-        ),
-    )
-
-    total_paths = [
-        joinpath(temp_folder, "leroy2008_total.png"),
-        joinpath(temp_folder, "bigiel2010_total.png"),
-    ]
-
-    GalaxyInspector.hvcatImages(
-        1,
-        total_paths;
-        output_path=joinpath(temp_folder, "total.png"),
-    )
-
-    ###############################
-    # Final image with all KS laws
-    ###############################
-
-    GalaxyInspector.hvcatImages(
-        4,
-        joinpath.(temp_folder, ["molecular.png", "atomic.png", "neutral.png", "total.png"]);
-        output_path=joinpath(output_path, "ks_law.png"),
-    )
-
-    rm(temp_folder; recursive=true, force=true)
-
-    ################################################################################################
-    # Stellar density maps of the last snapshot, face-on/edge-on projections
-    ################################################################################################
-
-    if logging
-        println(log_file, "#"^100)
-        println(log_file, "# Stellar density maps of the last snapshot, face-on/edge-on projections")
-        println(log_file, "#"^100, "\n")
-    end
-
-    stellarDensityMaps(
-        [simulation_path],
-        n_snapshots;
-        box_size=R3,
-        output_path,
-        trans_mode,
-        filter_mode,
-    )
-
-    ################################################################################################
-    # Gas density maps of the last snapshot, face-on/edge-on projections
-    ################################################################################################
-
-    if logging
-        println(log_file, "#"^100)
-        println(log_file, "# Gas density maps of the last snapshot, face-on/edge-on projections")
-        println(log_file, "#"^100, "\n")
-    end
-
-    gasDensityMaps(
-        [simulation_path],
-        n_snapshots;
-        box_size=R3,
-        output_path,
-        density_range=(2.0, NaN),
-        trans_mode,
-        filter_mode,
-    )
+    # ################################################################################################
+    # # Report files
+    # ################################################################################################
+
+    # if logging
+    #     println(log_file, "#"^100)
+    #     println(log_file, "# Report files")
+    #     println(log_file, "#"^100, "\n")
+    # end
+
+    # simulationReport([simulation_path]; output_path)
+
+    # snapshotReport(
+    #     [simulation_path],
+    #     [n_snapshots];
+    #     output_path,
+    #     icGen,
+    #     trans_mode,
+    #     filter_mode,
+    # )
+
+    # ################################################################################################
+    # # SFR vs. physical time
+    # ################################################################################################
+
+    # if logging
+    #     println(log_file, "#"^100)
+    #     println(log_file, "# SFR vs. physical time")
+    #     println(log_file, "#"^100, "\n")
+    # end
+
+    # timeSeries(
+    #     [simulation_path],
+    #     :physical_time,
+    #     :sfr;
+    #     icGen,
+    #     output_path,
+    #     trans_mode,
+    #     filter_mode,
+    #     smooth=n_snapshots > 300 ? n_snapshots ÷ 4 : 0,
+    #     theme=Theme(
+    #         palette=(color=[GalaxyInspector.WONG_ORANGE],),
+    #         size=(1320, 880),
+    #         Axis=(aspect=nothing, xticks=0:14),
+    #     ),
+    # )
+
+    # ################################################################################################
+    # # Stellar mass vs. physical time
+    # ################################################################################################
+
+    # if logging
+    #     println(log_file, "#"^100)
+    #     println(log_file, "# Stellar mass vs. physical time")
+    #     println(log_file, "#"^100, "\n")
+    # end
+
+    # timeSeries(
+    #     [simulation_path],
+    #     :physical_time,
+    #     :stellar_mass;
+    #     icGen,
+    #     output_path,
+    #     trans_mode,
+    #     filter_mode,
+    #     theme=Theme(
+    #         palette=(color=[GalaxyInspector.WONG_ORANGE],),
+    #         size=(1320, 880),
+    #         Axis=(aspect=nothing, xticks=0:14),
+    #     ),
+    # )
+
+    # ################################################################################################
+    # # Stellar surface density profile of the last snapshot, comparison with Agertz et al. (2021)
+    # ################################################################################################
+
+    # if logging
+    #     println(log_file, "#"^100)
+    #     println(
+    #         log_file,
+    #         "# Stellar surface density profile of the last snapshot, comparison with Agertz et al. \
+    #         (2021)",
+    #     )
+    #     println(log_file, "#"^100, "\n")
+    # end
+
+    # compareAgertz2021(
+    #     [simulation_path],
+    #     n_snapshots;
+    #     output_path,
+    #     trans_mode,
+    #     filter_mode,
+    #     sim_labels=[label],
+    # )
+
+    # ################################################################################################
+    # # Circularity histogram of the last snapshot, radio separated
+    # ################################################################################################
+
+    # if logging
+    #     println(log_file, "#"^100)
+    #     println(log_file, "# Circularity histogram of the last snapshot, radio separated")
+    #     println(log_file, "#"^100, "\n")
+    # end
+
+    # circularityHistogram(
+    #     [simulation_path],
+    #     n_snapshots;
+    #     R_in=R2,
+    #     R_out=R1,
+    #     output_path,
+    #     trans_mode,
+    #     filter_mode,
+    # )
+
+    # ################################################################################################
+    # # Efficiency per free-fall time histograms of the last snapshot
+    # ################################################################################################
+
+    # if logging
+    #     println(log_file, "#"^100)
+    #     println(log_file, "# Efficiency per free-fall time histograms of the last snapshot")
+    #     println(log_file, "#"^100, "\n")
+    # end
+
+    # if sfm
+    #     component = :ode_neutral
+    # else
+    #     component = :neutral
+    # end
+
+    # efficiencyHistogram(
+    #     [simulation_path],
+    #     n_snapshots;
+    #     component,
+    #     range=(1.0e-6, 1.0),
+    #     output_path,
+    #     trans_mode,
+    #     filter_mode,
+    #     stellar_ff=GalaxyInspector.filterByStellarAge,
+    #     ff_request=Dict(:stellar => ["GAGE"]),
+    #     labels=["Young stars", "Neutral gas"],
+    # )
+
+    # ################################################################################################
+    # # Comparison with Feldmann (2020)
+    # ################################################################################################
+
+    # if logging
+    #     println(log_file, "#"^100)
+    #     println(log_file, "# Comparison with Feldmann (2020)")
+    #     println(log_file, "#"^100, "\n")
+    # end
+
+    # compareFeldmann2020(
+    #     [simulation_path],
+    #     :stellar,
+    #     :molecular;
+    #     slice=n_snapshots,
+    #     scatter=true,
+    #     xlog=true,
+    #     ylog=true,
+    #     output_path,
+    #     icGen,
+    #     trans_mode,
+    #     filter_mode,
+    # )
+
+    # compareFeldmann2020(
+    #     [simulation_path],
+    #     :atomic,
+    #     :molecular;
+    #     slice=n_snapshots,
+    #     scatter=true,
+    #     xlog=true,
+    #     ylog=true,
+    #     output_path,
+    #     icGen,
+    #     trans_mode,
+    #     filter_mode,
+    # )
+
+    # compareFeldmann2020(
+    #     [simulation_path],
+    #     :stellar,
+    #     :sfr;
+    #     slice=n_snapshots,
+    #     scatter=true,
+    #     xlog=true,
+    #     ylog=true,
+    #     output_path,
+    #     icGen,
+    #     trans_mode,
+    #     filter_mode,
+    # )
+
+    # ################################################################################################
+    # # Profiles for the last snapshot, comparison with Mollá et al. (2015)
+    # ################################################################################################
+
+    # if sfm
+
+    #     molla_quantities = [
+    #         :stellar_area_density,
+    #         :ode_molecular_stellar_area_density,
+    #         :sfr_area_density,
+    #         :ode_atomic_area_density,
+    #         :O_stellar_abundance,
+    #         :N_stellar_abundance,
+    #         :C_stellar_abundance,
+    #     ]
+
+    # else
+
+    #     molla_quantities = [
+    #         :stellar_area_density,
+    #         :br_molecular_area_density,
+    #         :sfr_area_density,
+    #         :br_atomic_area_density,
+    #         :O_stellar_abundance,
+    #         :N_stellar_abundance,
+    #         :C_stellar_abundance,
+    #     ]
+
+    # end
+
+    # for quantity in molla_quantities
+
+    #     if logging
+    #         println(log_file, "#"^100)
+    #         println(
+    #             log_file,
+    #             "# $(quantity) profile for the last snapshot, comparison with Mollá et al. (2015)",
+    #         )
+    #         println(log_file, "#"^100, "\n")
+    #     end
+
+    #     compareMolla2015(
+    #         [simulation_path],
+    #         n_snapshots,
+    #         quantity;
+    #         output_path=joinpath(output_path, "molla_2015"),
+    #         icGen,
+    #         trans_mode,
+    #         filter_mode,
+    #         sim_labels=[label],
+    #         theme=Theme(Legend=(halign=:right, valign=:top, nbanks=1)),
+    #     )
+
+    # end
+
+    # ################################################################################################
+    # # Resolved Kennicutt–Schmidt law of the last snapshot, scatter with square grid
+    # ################################################################################################
+
+    # if logging
+    #     println(log_file, "#"^100)
+    #     println(
+    #         log_file,
+    #         "# Resolved Kennicutt–Schmidt law of the last snapshot, scatter with square grid",
+    #     )
+    #     println(log_file, "#"^100, "\n")
+    # end
+
+    # temp_folder = joinpath(output_path, "_ks_law")
+
+    # ###################
+    # # Molecular KS law
+    # ###################
+
+    # if logging
+    #     println(log_file, "#"^50)
+    #     println(log_file, "# Molecular KS law")
+    #     println(log_file, "#"^50, "\n")
+    # end
+
+    # kennicuttSchmidtLaw(
+    #     [simulation_path],
+    #     n_snapshots;
+    #     quantity=:molecular,
+    #     grid_size=30.0u"kpc",
+    #     bin_size=1.5u"kpc",
+    #     post_processing=GalaxyInspector.ppSun2023!,
+    #     pp_kwargs=(; color=GalaxyInspector.WONG_ORANGE),
+    #     fit=true,
+    #     icGen,
+    #     output_file=joinpath(temp_folder, "sun2023_molecular.png"),
+    #     trans_mode,
+    #     filter_mode,
+    #     sim_labels=[label],
+    #     theme=Theme(
+    #         Legend=(margin=(10, 0, 0, 0),),
+    #         Axis=(
+    #             limits=(-2.5, 3.5, -4.5, 0.5),
+    #             xticks=-1:1:3,
+    #             yticks=-4:1:0,
+    #         ),
+    #     ),
+    # )
+
+    # kennicuttSchmidtLaw(
+    #     [simulation_path],
+    #     n_snapshots;
+    #     quantity=:molecular,
+    #     grid_size=30.0u"kpc",
+    #     bin_size=0.8u"kpc",
+    #     post_processing=GalaxyInspector.ppLeroy2008!,
+    #     pp_kwargs=(; color=GalaxyInspector.WONG_ORANGE),
+    #     fit=true,
+    #     icGen,
+    #     output_file=joinpath(temp_folder, "leroy2008_molecular.png"),
+    #     trans_mode,
+    #     filter_mode,
+    #     sim_labels=[label],
+    #     theme=Theme(
+    #         Legend=(margin=(10, 0, 0, 0),),
+    #         Axis=(
+    #             limits=(-2.5, 3.5, -4.5, 0.5),
+    #             xticks=-1:1:3,
+    #             yticks=-4:1:0,
+    #         ),
+    #     ),
+    # )
+
+    # molecular_paths = [
+    #     joinpath(temp_folder, "leroy2008_molecular.png"),
+    #     joinpath(temp_folder, "sun2023_molecular.png"),
+    # ]
+
+    # GalaxyInspector.hvcatImages(
+    #     1,
+    #     molecular_paths;
+    #     output_path=joinpath(temp_folder, "molecular.png"),
+    # )
+
+    # ################
+    # # Atomic KS law
+    # ################
+
+    # if logging
+    #     println(log_file, "#"^50)
+    #     println(log_file, "# Atomic KS law")
+    #     println(log_file, "#"^50, "\n")
+    # end
+
+    # kennicuttSchmidtLaw(
+    #     [simulation_path],
+    #     n_snapshots;
+    #     quantity=:atomic,
+    #     grid_size=30.0u"kpc",
+    #     bin_size=0.6u"kpc",
+    #     post_processing=GalaxyInspector.ppBigiel2010!,
+    #     pp_kwargs=(; galaxy=:all, quantity=:atomic, color=GalaxyInspector.WONG_ORANGE),
+    #     fit=false,
+    #     icGen,
+    #     output_file=joinpath(temp_folder, "bigiel2010_atomic.png"),
+    #     trans_mode,
+    #     filter_mode,
+    #     sim_labels=[label],
+    #     theme=Theme(
+    #         Legend=(margin=(10, 0, 0, 20),),
+    #         Axis=(
+    #             limits=(-1.8, 2.2, -4.5, 0.5),
+    #             xticks=0:0.5:2,
+    #             yticks=-4:1:0,
+    #         ),
+    #     ),
+    # )
+
+    # kennicuttSchmidtLaw(
+    #     [simulation_path],
+    #     n_snapshots;
+    #     quantity=:atomic,
+    #     grid_size=30.0u"kpc",
+    #     bin_size=0.8u"kpc",
+    #     post_processing=GalaxyInspector.ppLeroy2008!,
+    #     pp_kwargs=(; quantity=:atomic, color=GalaxyInspector.WONG_ORANGE),
+    #     fit=false,
+    #     icGen,
+    #     output_file=joinpath(temp_folder, "leroy2008_atomic.png"),
+    #     trans_mode,
+    #     filter_mode,
+    #     sim_labels=[label],
+    #     theme=Theme(
+    #         Legend=(margin=(10, 0, 0, 20),),
+    #         Axis=(
+    #             limits=(-1.8, 2.2, -4.5, 0.5),
+    #             xticks=0:0.5:2,
+    #             yticks=-4:1:0,
+    #         ),
+    #     ),
+    # )
+
+    # atomic_paths = [
+    #     joinpath(temp_folder, "leroy2008_atomic.png"),
+    #     joinpath(temp_folder, "bigiel2010_atomic.png"),
+    # ]
+
+    # GalaxyInspector.hvcatImages(
+    #     1,
+    #     atomic_paths;
+    #     output_path=joinpath(temp_folder, "atomic.png"),
+    # )
+
+    # #################
+    # # Neutral KS law
+    # #################
+
+    # if logging
+    #     println(log_file, "#"^50)
+    #     println(log_file, "# Neutral KS law")
+    #     println(log_file, "#"^50, "\n")
+    # end
+
+    # kennicuttSchmidtLaw(
+    #     [simulation_path],
+    #     n_snapshots;
+    #     quantity=:neutral,
+    #     grid_size=30.0u"kpc",
+    #     bin_size=0.6u"kpc",
+    #     post_processing=GalaxyInspector.ppBigiel2010!,
+    #     pp_kwargs=(; galaxy=:all, quantity=:neutral, color=GalaxyInspector.WONG_ORANGE),
+    #     fit=false,
+    #     icGen,
+    #     output_file=joinpath(temp_folder, "bigiel2010_neutral.png"),
+    #     trans_mode,
+    #     filter_mode,
+    #     sim_labels=[label],
+    #     theme=Theme(
+    #         Legend=(margin=(10, 0, 0, 20),),
+    #         Axis=(
+    #             limits=(0.4, 2.6, -4.5, 0.5),
+    #             xticks=0.5:0.5:2.5,
+    #             yticks=-4:1:0,
+    #         ),
+    #     ),
+    # )
+
+    # kennicuttSchmidtLaw(
+    #     [simulation_path],
+    #     n_snapshots;
+    #     quantity=:neutral,
+    #     grid_size=30.0u"kpc",
+    #     bin_size=0.8u"kpc",
+    #     post_processing=GalaxyInspector.ppLeroy2008!,
+    #     pp_kwargs=(; quantity=:neutral, color=GalaxyInspector.WONG_ORANGE),
+    #     fit=false,
+    #     icGen,
+    #     output_file=joinpath(temp_folder, "leroy2008_neutral.png"),
+    #     trans_mode,
+    #     filter_mode,
+    #     sim_labels=[label],
+    #     theme=Theme(
+    #         Legend=(margin=(10, 0, 0, 20),),
+    #         Axis=(
+    #             limits=(0.4, 2.6, -4.5, 0.5),
+    #             xticks=0.5:0.5:2.5,
+    #             yticks=-4:1:0,
+    #         ),
+    #     ),
+    # )
+
+    # neutral_paths = [
+    #     joinpath(temp_folder, "leroy2008_neutral.png"),
+    #     joinpath(temp_folder, "bigiel2010_neutral.png"),
+    # ]
+
+    # GalaxyInspector.hvcatImages(
+    #     1,
+    #     neutral_paths;
+    #     output_path=joinpath(temp_folder, "neutral.png"),
+    # )
+
+    # ###################
+    # # Total gas KS law
+    # ###################
+
+    # if logging
+    #     println(log_file, "#"^50)
+    #     println(log_file, "# Total gas KS law")
+    #     println(log_file, "#"^50, "\n")
+    # end
+
+    # kennicuttSchmidtLaw(
+    #     [simulation_path],
+    #     n_snapshots;
+    #     quantity=:gas,
+    #     grid_size=30.0u"kpc",
+    #     bin_size=0.6u"kpc",
+    #     post_processing=GalaxyInspector.ppBigiel2010!,
+    #     pp_kwargs=(; galaxy=:all, quantity=:neutral, color=GalaxyInspector.WONG_ORANGE),
+    #     fit=false,
+    #     icGen,
+    #     output_file=joinpath(temp_folder, "bigiel2010_total.png"),
+    #     trans_mode,
+    #     filter_mode,
+    #     sim_labels=[label],
+    #     theme=Theme(
+    #         Legend=(margin=(10, 0, 0, 20),),
+    #         Axis=(
+    #             limits=(0.4, 2.6, -4.5, 0.5),
+    #             xticks=0.5:0.5:2.5,
+    #             yticks=-4:1:0,
+    #         ),
+    #     ),
+    # )
+
+    # kennicuttSchmidtLaw(
+    #     [simulation_path],
+    #     n_snapshots;
+    #     quantity=:gas,
+    #     grid_size=30.0u"kpc",
+    #     bin_size=0.8u"kpc",
+    #     post_processing=GalaxyInspector.ppLeroy2008!,
+    #     pp_kwargs=(; quantity=:neutral, color=GalaxyInspector.WONG_ORANGE),
+    #     fit=false,
+    #     icGen,
+    #     output_file=joinpath(temp_folder, "leroy2008_total.png"),
+    #     trans_mode,
+    #     filter_mode,
+    #     sim_labels=[label],
+    #     theme=Theme(
+    #         Legend=(margin=(10, 0, 0, 20),),
+    #         Axis=(
+    #             limits=(0.4, 2.6, -4.5, 0.5),
+    #             xticks=0.5:0.5:2.5,
+    #             yticks=-4:1:0,
+    #         ),
+    #     ),
+    # )
+
+    # total_paths = [
+    #     joinpath(temp_folder, "leroy2008_total.png"),
+    #     joinpath(temp_folder, "bigiel2010_total.png"),
+    # ]
+
+    # GalaxyInspector.hvcatImages(
+    #     1,
+    #     total_paths;
+    #     output_path=joinpath(temp_folder, "total.png"),
+    # )
+
+    # ###############################
+    # # Final image with all KS laws
+    # ###############################
+
+    # GalaxyInspector.hvcatImages(
+    #     4,
+    #     joinpath.(temp_folder, ["molecular.png", "atomic.png", "neutral.png", "total.png"]);
+    #     output_path=joinpath(output_path, "ks_law.png"),
+    # )
+
+    # rm(temp_folder; recursive=true, force=true)
+
+    # ################################################################################################
+    # # Stellar density maps of the last snapshot, face-on/edge-on projections
+    # ################################################################################################
+
+    # if logging
+    #     println(log_file, "#"^100)
+    #     println(log_file, "# Stellar density maps of the last snapshot, face-on/edge-on projections")
+    #     println(log_file, "#"^100, "\n")
+    # end
+
+    # stellarDensityMaps(
+    #     [simulation_path],
+    #     n_snapshots;
+    #     box_size=R3,
+    #     output_path,
+    #     trans_mode,
+    #     filter_mode,
+    # )
+
+    # ################################################################################################
+    # # Gas density maps of the last snapshot, face-on/edge-on projections
+    # ################################################################################################
+
+    # if logging
+    #     println(log_file, "#"^100)
+    #     println(log_file, "# Gas density maps of the last snapshot, face-on/edge-on projections")
+    #     println(log_file, "#"^100, "\n")
+    # end
+
+    # gasDensityMaps(
+    #     [simulation_path],
+    #     n_snapshots;
+    #     box_size=R3,
+    #     output_path,
+    #     icGen,
+    #     density_range=(2.0, NaN),
+    #     trans_mode,
+    #     filter_mode,
+    # )
 
     ################################################################################################
     # Evolution of the masses and fractions, for the different gas components
@@ -649,6 +672,7 @@ function basic_analysis(
         [simulation_path];
         r_gas=R1,
         output_path,
+        icGen,
         trans_mode,
         filter_mode,
     )
@@ -672,6 +696,8 @@ function basic_analysis(
         output_path=temp_folder,
         resolution=800,
         projection_plane=:xy,
+        icGen,
+        extinction=:neutral,
         trans_mode,
         filter_mode,
     )
@@ -683,6 +709,8 @@ function basic_analysis(
         output_path=temp_folder,
         resolution=800,
         projection_plane=:xz,
+        icGen,
+        extinction=:neutral,
         trans_mode,
         filter_mode,
     )
@@ -700,6 +728,35 @@ function basic_analysis(
     )
 
     rm(temp_folder, recursive=true, force=true)
+
+    ################################################################################################
+    # Molecular fraction evolution, fH2 = MH2 / (MH2 + M*)
+    ################################################################################################
+
+    if cosmological
+
+        if logging
+            println(log_file, "#"^100)
+            println(log_file, "# Molecular fraction evolution, fH2 = MH2 / (MH2 + M*)")
+            println(log_file, "#"^100, "\n")
+        end
+
+        # Compute the index of the snapshot closest to t = 2 Gyr
+        idx_2Gyr = GalaxyInspector.findClosestSnapshot(simulation_path, 2.0u"Gyr")
+
+        molecularFractionEvolution(
+            [simulation_path];
+            slice=idx_2Gyr:n_snapshots,
+            x_quantity=:redshift,
+            measurements=true,
+            output_path,
+            trans_mode,
+            filter_mode,
+            icGen=[icGen],
+            theme=Theme(Axis=(xreversed=true,),),
+        )
+
+    end
 
     if video
 
@@ -730,6 +787,7 @@ function basic_analysis(
             field_type=:cells,
             box_size=R3,
             output_path,
+            icGen,
             density_range=(NaN, NaN),
             trans_mode,
             filter_mode,
@@ -752,6 +810,7 @@ function comparison(
     simulation_paths::Vector{String},
     output_path::String,
     logging::Bool;
+    icGens::Vector{Function}=[initialConditionFunction],
     labels::Vector{<:AbstractString}=basename.(simulation_paths),
 )::Nothing
 
@@ -806,6 +865,8 @@ function comparison(
     if sfm
 
         quantities = [
+            :stellar_mass,
+            :sfr,
             :gas_mass,
             :ode_ionized_mass,
             :ode_atomic_mass,
@@ -814,21 +875,19 @@ function comparison(
             :ode_dust_mass,
             :ode_neutral_mass,
             :ode_cold_mass,
-            :stellar_mass,
-            :sfr,
         ]
 
     else
 
         quantities = [
+            :stellar_mass,
+            :sfr,
             :gas_mass,
             :ionized_mass,
             :br_atomic_mass,
             :br_molecular_mass,
             :neutral_mass,
             :Z_gas_mass,
-            :stellar_mass,
-            :sfr,
         ]
 
     end
@@ -1108,6 +1167,82 @@ function comparison(
     rm(temp_folder; recursive=true, force=true)
 
     ################################################################################################
+    # Comparison with Feldmann (2020)
+    ################################################################################################
+
+    if logging
+        println(log_file, "#"^100)
+        println(log_file, "# Comparison with Feldmann (2020)")
+        println(log_file, "#"^100, "\n")
+    end
+
+    compareFeldmann2020(
+        simulation_paths,
+        :stellar,
+        :molecular;
+        slice=n_snapshots,
+        scatter=true,
+        xlog=true,
+        ylog=true,
+        output_path,
+        trans_mode,
+        filter_mode,
+    )
+
+    compareFeldmann2020(
+        simulation_paths,
+        :atomic,
+        :molecular;
+        slice=n_snapshots,
+        scatter=true,
+        xlog=true,
+        ylog=true,
+        output_path,
+        trans_mode,
+        filter_mode,
+    )
+
+    compareFeldmann2020(
+        simulation_paths,
+        :stellar,
+        :sfr;
+        slice=n_snapshots,
+        scatter=true,
+        xlog=true,
+        ylog=true,
+        output_path,
+        trans_mode,
+        filter_mode,
+    )
+
+    ################################################################################################
+    # Molecular fraction evolution, fH2 = MH2 / (MH2 + M*)
+    ################################################################################################
+
+    if cosmological
+
+        if logging
+            println(log_file, "#"^100)
+            println(log_file, "# Molecular fraction evolution, fH2 = MH2 / (MH2 + M*)")
+            println(log_file, "#"^100, "\n")
+        end
+
+        # Compute the index of the snapshot closest to t = 2 Gyr
+        idx_2Gyr = minimum(GalaxyInspector.findClosestSnapshot.(simulation_paths, 2.0u"Gyr"))
+
+        molecularFractionEvolution(
+            simulation_paths;
+            slice=idx_2Gyr:n_snapshots,
+            x_quantity=:redshift,
+            output_path,
+            trans_mode,
+            filter_mode,
+            theme=Theme(Axis=(xreversed=true,),),
+        )
+
+    end
+
+    ################################################################################################
     # Close files
     ################################################################################################
 
@@ -1117,7 +1252,7 @@ function comparison(
 
 end
 
-function (@main)(ARGS)
+function @main(args)
 
     # If logging into a file will be enable
     LOGGING = true
@@ -1128,121 +1263,344 @@ function (@main)(ARGS)
     # Output folder
     BASE_OUT_PATH = "./"
 
+    function ic_13(data_dict::Dict, component::Symbol)::Union{Function,Nothing}
+
+        ############################################################################################
+        # Molecular gas
+        ############################################################################################
+
+        if component == :ode_molecular || component == :ode_molecular_stellar
+
+            NH  = data_dict[:gas]["NH  "]
+            NHP = data_dict[:gas]["NHP "]
+            GZ  = data_dict[:gas]["GZ  "]
+            P   = data_dict[:gas]["PRES"]
+
+            relative_pressure = @. uconvert(Unitful.NoUnits, P / GalaxyInspector.P0)^GalaxyInspector.ALPHA_BLITZ
+
+            FM = @. 1.0 / (1.0 + relative_pressure)
+
+            ode_ic = function molecular_ic(i::Int)::Float64
+
+                nh  = NH[i]
+                nhp = NHP[i]
+                Z   = GZ[i]
+                fm  = FM[i]
+
+                return (1.0 - GalaxyInspector.setPositive(Z)) * nh / (nhp + nh) * fm
+
+            end
+
+        ############################################################################################
+        # Atomic gas
+        ############################################################################################
+
+        elseif component == :ode_atomic
+
+            NH  = data_dict[:gas]["NH  "]
+            NHP = data_dict[:gas]["NHP "]
+            GZ  = data_dict[:gas]["GZ  "]
+            P   = data_dict[:gas]["PRES"]
+
+            relative_pressure = @. uconvert(Unitful.NoUnits, P / GalaxyInspector.P0)^GalaxyInspector.ALPHA_BLITZ
+
+            FA = @. relative_pressure / (1.0 + relative_pressure)
+
+            ode_ic = function atomic_ic(i::Int)::Float64
+
+                nh  = NH[i]
+                nhp = NHP[i]
+                Z   = GZ[i]
+                fa  = FA[i]
+
+                return (1.0 - GalaxyInspector.setPositive(Z)) * nh / (nhp + nh) * fa
+
+            end
+
+        ############################################################################################
+        # All others
+        ############################################################################################
+
+        else
+
+            ode_ic = GalaxyInspector.initialConditionFunction(data_dict, component)
+
+        end
+
+        return ode_ic
+
+    end
+
+    function ic_14(data_dict::Dict, component::Symbol)::Union{Function,Nothing}
+
+        ############################################################################################
+        # Molecular gas
+        ############################################################################################
+
+        if component == :ode_molecular || component == :ode_molecular_stellar
+
+            NH  = data_dict[:gas]["NH  "]
+            NHP = data_dict[:gas]["NHP "]
+            GZ  = data_dict[:gas]["GZ  "]
+
+            ode_ic = function molecular_ic(i::Int)::Float64
+
+                nh  = NH[i]
+                nhp = NHP[i]
+                Z   = GZ[i]
+
+                return (1.0 - GalaxyInspector.setPositive(Z)) * nh / (nhp + nh)
+
+            end
+
+        ############################################################################################
+        # Atomic gas
+        ############################################################################################
+
+        elseif component == :ode_atomic
+
+            ode_ic = function atomic_ic(i::Int)::Float64
+
+                return 0.0
+
+            end
+
+        ############################################################################################
+        # All others
+        ############################################################################################
+
+        else
+
+            ode_ic = GalaxyInspector.initialConditionFunction(data_dict, component)
+
+        end
+
+        return ode_ic
+
+    end
+
     ################################################################################################
     # Basic analysis
     ################################################################################################
 
     SIMULATIONS = joinpath.(
-        "F:/simulations/",
+        "/run/media/elozano/DISK4T/simulations/",
         [
-            # "current/SFM_01",        # Paper I
-            # "current/SFM_02",        # + Dust
-            # "current/SFM_03",        # + Shielding
-            # "current/SFM_04",        # + Photon attenuation
-            # "current/SFM_05",        # + UVB
-            # "current/SFM_06",        # + LWB = Paper II (Fiducial)
+            # "SFM_01",        # Paper I
+            # "SFM_02",        # + Metals and dust
+            # "SFM_03",        # + Shielding
+            # "SFM_04",        # + Photon attenuation
+            # "SFM_05",        # + UVB
+            "SFM_06",        # + LWB = Paper II (Fiducial)
 
-            # "current/SFM_06_CRHO50", # Crho = 50
-            "current/SFM_08",        # Crho = 500
-            # "current/SFM_11",        # Crho = 1000
+            # "SFM_06_CRHO50", # Crho = 50
+            # "SFM_08",        # Crho = 500
+            # # "SFM_11",        # Crho = 1000
 
-            # "current/SFM_09",        # H2 and HI (semi) coupled to SF
-            # "current/SFM_10",        # H2 and HI (fully) coupled to SF
-            # "current/SFM_12",        # H2 and HI (fully) coupled to SF + Crho = 10
+            # "SFM_09",        # H2 and HI (semi) coupled to SF
+            # "SFM_10",        # H2 and HI (fully) coupled to SF
+            # # "SFM_12",        # H2 and HI (fully) coupled to SF + Crho = 10
 
-            # "current/SFM_07",        # High res
+            # # "SFM_07",        # High resolution
+
+            # "SFM_13",        # IC with a molecular fraction != 0, using the Blitz relation
+            # "SFM_14",        # IC with a molecular fraction = 1.0 * fn
         ]
     )
 
-    for simulation in SIMULATIONS
-        basic_analysis(simulation, BASE_OUT_PATH, LOGGING; video=VIDEO)
+    ICGEN = [
+        # GalaxyInspector.initialConditionFunction,
+        # GalaxyInspector.initialConditionFunction,
+        # GalaxyInspector.initialConditionFunction,
+        # GalaxyInspector.initialConditionFunction,
+        # GalaxyInspector.initialConditionFunction,
+        GalaxyInspector.initialConditionFunction,
+
+        # GalaxyInspector.initialConditionFunction,
+        # GalaxyInspector.initialConditionFunction,
+        # GalaxyInspector.initialConditionFunction,
+
+        # GalaxyInspector.initialConditionFunction,
+        # GalaxyInspector.initialConditionFunction,
+        # GalaxyInspector.initialConditionFunction,
+
+        # GalaxyInspector.initialConditionFunction,
+
+        # ic_13,
+        # ic_14,
+    ]
+
+    for (simulation, icGen) in zip(SIMULATIONS, ICGEN)
+        basic_analysis(simulation, BASE_OUT_PATH, LOGGING; icGen, video=VIDEO)
     end
 
-    # ################################################################################################
-    # # Comparison
-    # ################################################################################################
+    ################################################################################################
+    # Comparisons - Model
+    ################################################################################################
 
     # comparison(
-    #     joinpath.("F:/simulations/current/", ["SFM_01", "SFM_06"]),
-    #     joinpath(BASE_OUT_PATH, "comparison/SFM_01_06"),
+    #     joinpath.("/run/media/elozano/DISK4T/simulations/", ["SFM_01", "SFM_06"]),
+    #     joinpath(BASE_OUT_PATH, "comparison/model/SFM_01_06"),
     #     LOGGING;
     #     labels=["Paper I", "Paper II"],
     # )
 
     # comparison(
-    #     joinpath.("F:/simulations/current/", ["SFM_01", "SFM_02"]),
-    #     joinpath(BASE_OUT_PATH, "comparison/SFM_01_02"),
+    #     joinpath.("/run/media/elozano/DISK4T/simulations/", ["SFM_01", "SFM_02"]),
+    #     joinpath(BASE_OUT_PATH, "comparison/model/SFM_01_02"),
     #     LOGGING;
-    #     labels=["SFM_01","SFM_02"],
+    #     labels=["Paper I", "+ Z \\& Dust"],
     # )
 
     # comparison(
-    #     joinpath.("F:/simulations/current/", ["SFM_02", "SFM_03"]),
-    #     joinpath(BASE_OUT_PATH, "comparison/SFM_02_03"),
+    #     joinpath.("/run/media/elozano/DISK4T/simulations/", ["SFM_02", "SFM_03"]),
+    #     joinpath(BASE_OUT_PATH, "comparison/model/SFM_02_03"),
     #     LOGGING;
-    #     labels=["SFM_02", "SFM_03"],
+    #     labels=["+ Z \\& Dust", "+ Z \\& D + Shielding"],
     # )
 
     # comparison(
-    #     joinpath.("F:/simulations/current/", ["SFM_03", "SFM_04"]),
-    #     joinpath(BASE_OUT_PATH, "comparison/SFM_03_04"),
+    #     joinpath.("/run/media/elozano/DISK4T/simulations/", ["SFM_03", "SFM_04"]),
+    #     joinpath(BASE_OUT_PATH, "comparison/model/SFM_03_04"),
     #     LOGGING;
-    #     labels=["SFM_03", "SFM_04"],
+    #     labels=["+ Z \\& D + Shielding", "+ Z \\& D + S + Photon attenuation"],
     # )
 
     # comparison(
-    #     joinpath.("F:/simulations/current/", ["SFM_04", "SFM_05"]),
-    #     joinpath(BASE_OUT_PATH, "comparison/SFM_04_05"),
+    #     joinpath.("/run/media/elozano/DISK4T/simulations/", ["SFM_04", "SFM_05"]),
+    #     joinpath(BASE_OUT_PATH, "comparison/model/SFM_04_05"),
     #     LOGGING;
-    #     labels=["SFM_04", "SFM_05"],
+    #     labels=["+ Z \\& D + S + Photon attenuation", "+ Z \\& D + S + PA + UVB"],
     # )
 
     # comparison(
-    #     joinpath.("F:/simulations/current/", ["SFM_05", "SFM_06"]),
-    #     joinpath(BASE_OUT_PATH, "comparison/SFM_05_06"),
+    #     joinpath.("/run/media/elozano/DISK4T/simulations/", ["SFM_05", "SFM_06"]),
+    #     joinpath(BASE_OUT_PATH, "comparison/model/SFM_05_06"),
     #     LOGGING;
-    #     labels=["SFM_05", "SFM_06"],
+    #     labels=["+ Z \\& D + S + PA + UVB", "+ Z \\& D + S + PA + UVB + LWB = Paper II"],
+    # )
+
+    # comparison(
+    #     joinpath.(
+    #         "/run/media/elozano/DISK4T/simulations/",
+    #         [
+    #             "SFM_01",
+    #             "SFM_02",
+    #             "SFM_03",
+    #             "SFM_04",
+    #             "SFM_05",
+    #             "SFM_06",
+    #         ],
+    #     ),
+    #     joinpath(BASE_OUT_PATH, "comparison/model/SFM_ALL"),
+    #     LOGGING;
+    #     labels=[
+    #         "Paper I",
+    #         "+ Z \\& D",
+    #         "+ Z \\& D + S",
+    #         "+ Z \\& D + S + PA",
+    #         "+ Z \\& D + S + PA + UVB",
+    #         "+ Z \\& D + S + PA + UVB + LWB = Paper II",
+    #     ],
     # )
 
     # ################################################################################################
-
-    # comparison(
-    #     joinpath.("F:/simulations/current/", ["SFM_06_CRHO50", "SFM_06", "SFM_08", "SFM_11"]),
-    #     joinpath(BASE_OUT_PATH, "comparison/SFM_06_08_11"),
-    #     LOGGING;
-    #     labels=[L"C_\rho = 50", L"C_\rho = 100 (fiducial)", L"C_\rho = 500", L"C_\rho = 1000"],
-    # )
-
+    # # Comparisons - Crho
     # ################################################################################################
 
     # comparison(
-    #     joinpath.("F:/simulations/current/", ["SFM_09", "SFM_06"]),
-    #     joinpath(BASE_OUT_PATH, "comparison/SFM_09_06"),
+    #     joinpath.(
+    #         "/run/media/elozano/DISK4T/simulations/",
+    #         [
+    #             "SFM_06_CRHO50",
+    #             "SFM_06",
+    #             "SFM_08",
+    #             # "SFM_11",
+    #         ],
+    #     ),
+    #     joinpath(BASE_OUT_PATH, "comparison/crho"),
+    #     LOGGING;
+    #     labels=[
+    #         L"C_\rho = 50",
+    #         L"C_\rho = 100 \text{ (fiducial)}",
+    #         L"C_\rho = 500",
+    #         # L"C_\rho = 1000",
+    #     ],
+    # )
+
+    # ################################################################################################
+    # # Comparisons - Atomic
+    # ################################################################################################
+
+    # comparison(
+    #     joinpath.("/run/media/elozano/DISK4T/simulations/", ["SFM_09", "SFM_06"]),
+    #     joinpath(BASE_OUT_PATH, "comparison/atomic/SFM_09_06"),
     #     LOGGING;
     #     labels=["H2+HI (semi) -> SF", "Fiducial"],
     # )
 
     # comparison(
-    #     joinpath.("F:/simulations/current/", ["SFM_10", "SFM_06"]),
-    #     joinpath(BASE_OUT_PATH, "comparison/SFM_10_06"),
+    #     joinpath.("/run/media/elozano/DISK4T/simulations/", ["SFM_10", "SFM_06"]),
+    #     joinpath(BASE_OUT_PATH, "comparison/atomic/SFM_10_06"),
     #     LOGGING;
     #     labels=["H2+HI (fully) -> SF", "Fiducial"],
     # )
 
+    # # comparison(
+    # #     joinpath.("/run/media/elozano/DISK4T/simulations/", ["SFM_12", "SFM_06"]),
+    # #     joinpath(BASE_OUT_PATH, "comparison/atomic/SFM_12_06"),
+    # #     LOGGING;
+    # #     labels=[L"\text{H2+HI (fully) -> SF} + C_\rho = 10", "Fiducial"],
+    # # )
+
+    ################################################################################################
+    # Comparisons - Resolution - Isolated
+    ################################################################################################
+
     # comparison(
-    #     joinpath.("F:/simulations/current/", ["SFM_12", "SFM_06"]),
-    #     joinpath(BASE_OUT_PATH, "comparison/SFM_12_06"),
+    #     joinpath.(
+    #         "/run/media/elozano/DISK4T/tests/",
+    #         [
+    #             "TEST_032_050",
+    #             "TEST_032_100",
+    #             "TEST_032_500",
+    #             "TEST_064_050",
+    #             "TEST_064_100",
+    #             "TEST_064_500",
+    #         ],
+    #     ),
+    #     joinpath(BASE_OUT_PATH, "comparison/resolution_isolated"),
     #     LOGGING;
-    #     labels=[L"\text{H2+HI (fully) -> SF} + C_\rho = 10", "Fiducial"],
+    #     labels=[
+    #         L"32^3 \, - \, C_\rho = 50",
+    #         L"32^3 \, - \, C_\rho = 100",
+    #         L"32^3 \, - \, C_\rho = 500",
+    #         L"64^3 \, - \, C_\rho = 50",
+    #         L"64^3 \, - \, C_\rho = 100",
+    #         L"64^3 \, - \, C_\rho = 500",
+    #     ],
     # )
 
-    # ################################################################################################
+    ################################################################################################
+    # Comparisons - Resolution - Cosmological
+    ################################################################################################
 
     # comparison(
-    #     joinpath.("F:/simulations/current/", ["SFM_07", "SFM_06"]),
-    #     joinpath(BASE_OUT_PATH, "comparison/SFM_07_06"),
+    #     joinpath.("/run/media/elozano/DISK4T/simulations/", ["SFM_07", "SFM_06"]),
+    #     joinpath(BASE_OUT_PATH, "comparison/resolution_cosmological"),
     #     LOGGING;
     #     labels=["High res", "Fiducial"],
+    # )
+
+    ################################################################################################
+    # Comparisons - Resolution - Cosmological
+    ################################################################################################
+
+    # comparison(
+    #     joinpath.("/run/media/elozano/DISK4T/simulations/", ["SFM_06", "SFM_13", "SFM_14"]),
+    #     joinpath(BASE_OUT_PATH, "comparison/molecular_ic"),
+    #     LOGGING;
+    #     labels=[L"f_m(0) = 0", L"f_m(0) = \text{Blitz}", L"f_m(0) = f_n"],
     # )
 
 end

@@ -1,4 +1,6 @@
 tests
 equilibrium
+/hestia/*
 /basic_analysis/*
 !/basic_analysis/basic_analysis.jl
+!/hestia/hestia.jl
